@@ -18,7 +18,7 @@ type Review = {
   isVerified: boolean
 }
 
-const Reviews = () => {
+export default function Reviews() {
   const reviews: Review[] = [
     {
       id: "1",
@@ -151,6 +151,4 @@ const Reviews = () => {
       </div>
     </section>
   )
-}
-
-export default Reviews 
+} 

@@ -45,10 +45,6 @@ type BookingInfo = {
   }
 }
 
-// 포인트 컬러 상수 추가
-// const PRIMARY_COLOR = "#2F513F" 줄 제거
-const PRIMARY_LIGHT = "rgba(47, 81, 63, 0.1)" // 연한 녹색 배경
-
 export default function BookingGuide() {
   const selectedProgram = useBookingStore((state) => state.selectedProgram)
   
@@ -234,7 +230,6 @@ export default function BookingGuide() {
   };
 
   const handleBooking = () => {
-    // 여기에 예약 처리 로직 추가
     alert("예약이 성공적으로 완료되었습니다!")
   }
 
