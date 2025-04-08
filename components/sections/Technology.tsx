@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Server, Zap, Lock } from "lucide-react"
+import { Shield, Server } from "lucide-react"
 
 export default function Technology() {
   const features = [

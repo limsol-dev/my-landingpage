@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,9 +18,7 @@ type Review = {
   isVerified: boolean
 }
 
-export default function Reviews() {
-  const [activeTab, setActiveTab] = useState("all")
-
+const Reviews = () => {
   const reviews: Review[] = [
     {
       id: "1",
@@ -154,4 +151,6 @@ export default function Reviews() {
       </div>
     </section>
   )
-} 
+}
+
+export default Reviews 

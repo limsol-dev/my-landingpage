@@ -16,7 +16,6 @@ import {
   CalendarCheck, 
   ClipboardList, 
   Clock, 
-  CreditCard,
   CheckCircle2,
   AlertCircle,
   Info
@@ -36,8 +35,6 @@ import { Program } from '@/types/program'
 import { programs } from '@/data/programs'
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useRouter } from "next/navigation"
-import { toast } from "react-hot-toast"
 
 type BookingInfo = {
   date: Date | undefined
@@ -49,12 +46,11 @@ type BookingInfo = {
 }
 
 // 포인트 컬러 상수 추가
-const PRIMARY_COLOR = "#2F513F" // 포인트 컬러 (진한 녹색)
+// const PRIMARY_COLOR = "#2F513F" 줄 제거
 const PRIMARY_LIGHT = "rgba(47, 81, 63, 0.1)" // 연한 녹색 배경
 
 export default function BookingGuide() {
   const selectedProgram = useBookingStore((state) => state.selectedProgram)
-  const router = useRouter()
   
   const [bookingInfo, setBookingInfo] = useState<BookingInfo>({
     date: new Date(),
@@ -148,7 +144,7 @@ export default function BookingGuide() {
       id: 4,
       title: "결제 및 확정",
       description: "결제 후 예약이 확정됩니다",
-      icon: <CreditCard className="h-8 w-8" />
+      icon: <Clock className="h-8 w-8" />
     }
   ]
 
@@ -239,7 +235,7 @@ export default function BookingGuide() {
 
   const handleBooking = () => {
     // 여기에 예약 처리 로직 추가
-    router.push('/booking/complete') // 또는 다른 적절한 페이지로 이동
+    alert("예약이 성공적으로 완료되었습니다!")
   }
 
   // 현재 총 인원 계산 (기본 15인 + 추가 인원)
