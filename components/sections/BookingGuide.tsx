@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Accordion,
@@ -13,10 +13,12 @@ import {
 import { 
   ArrowRight, 
   CalendarCheck, 
+  CalendarIcon,
   Clock, 
   CheckCircle2,
   AlertCircle,
-  Info
+  Info,
+  CreditCard
 } from "lucide-react"
 import { useState } from "react"
 import { useBookingStore } from '@/store/useBookingStore'
@@ -115,7 +117,7 @@ export default function BookingGuide() {
       id: 2,
       title: "날짜 선택",
       description: "희망하시는 날짜를 선택해주세요",
-      icon: <CalendarCheck className="h-8 w-8" />
+      icon: <CalendarIcon className="h-8 w-8" />
     },
     {
       id: 3,
@@ -127,7 +129,7 @@ export default function BookingGuide() {
       id: 4,
       title: "결제 및 확정",
       description: "결제 후 예약이 확정됩니다",
-      icon: <Clock className="h-8 w-8" />
+      icon: <CreditCard className="h-8 w-8" />
     }
   ]
 
@@ -250,7 +252,7 @@ export default function BookingGuide() {
             <Card>
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-4">날짜 선택</h3>
-                <Calendar
+                <CalendarComponent
                   mode="single"
                   selected={bookingInfo.date}
                   onSelect={(date) => setBookingInfo({ ...bookingInfo, date })}
