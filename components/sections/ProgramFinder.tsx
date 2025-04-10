@@ -166,16 +166,11 @@ export default function ProgramFinder() {
   }
 
   const getRecommendedPrograms = () => {
-    // 간단한 추천 로직
-    const [visitor, purpose, duration] = answers
-    
-    return programs.map(program => ({
-      ...program,
-      recommended: 
-        (visitor === "family" && program.tags.includes("가족")) ||
-        (visitor === "couple" && program.tags.includes("커플")) ||
-        (visitor === "alone" && program.tags.includes("힐링"))
-    }))
+    return programs.filter(program => {
+      const matchesPurpose = program.purpose === purpose
+      const matchesDuration = program.duration === duration
+      return matchesPurpose && matchesDuration
+    })
   }
 
   const resetQuiz = () => {

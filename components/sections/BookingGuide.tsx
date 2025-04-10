@@ -3,38 +3,18 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
-import { Badge } from "@/components/ui/badge"
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   ArrowRight, 
   CalendarCheck, 
-  ClipboardList, 
   Clock, 
   CheckCircle2,
   AlertCircle,
   Info
 } from "lucide-react"
 import { useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useBookingStore } from '@/store/useBookingStore'
-import { Program } from '@/types/program'
-import { programs } from '@/data/programs'
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { type Program } from '@/types/program'
 
 type BookingInfo = {
   date: Date | undefined
@@ -47,6 +27,7 @@ type BookingInfo = {
 
 export default function BookingGuide() {
   const selectedProgram = useBookingStore((state) => state.selectedProgram)
+  const [date, setDate] = useState<Date | undefined>(new Date())
   
   const [bookingInfo, setBookingInfo] = useState<BookingInfo>({
     date: new Date(),
@@ -122,7 +103,7 @@ export default function BookingGuide() {
       id: 1,
       title: "프로그램 선택",
       description: "원하시는 프로그램을 선택해주세요",
-      icon: <ClipboardList className="h-8 w-8" />
+      icon: <CalendarCheck className="h-8 w-8" />
     },
     {
       id: 2,

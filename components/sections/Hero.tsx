@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { ArrowRight } from "lucide-react"
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 export default function Hero() {
-  const [isVisible, setIsVisible] = useState(true)
+  const [isVisible] = useState(true)
 
   // 실시간 예약 현황
   const bookingStatus = {

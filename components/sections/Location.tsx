@@ -5,9 +5,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { MapPin, Navigation, Bus, Car } from "lucide-react"
 
+interface KakaoMapOptions {
+  center: any;
+  level: number;
+}
+
+interface MarkerOptions {
+  position: any;
+}
+
 declare global {
   interface Window {
-    kakao: any
+    kakao: {
+      maps: {
+        Map: new (container: HTMLElement, options: KakaoMapOptions) => any;
+        LatLng: new (lat: number, lng: number) => any;
+        Marker: new (options: MarkerOptions) => any;
+      };
+    };
   }
 }
 
@@ -58,7 +73,6 @@ export default function Location() {
       
       const map = new window.kakao.maps.Map(mapRef.current, options)
       
-      // 마커 추가
       const marker = new window.kakao.maps.Marker({
         position: new window.kakao.maps.LatLng(
           locationInfo.coordinates.lat,
@@ -68,7 +82,7 @@ export default function Location() {
       
       marker.setMap(map)
     }
-  }, [])
+  }, [locationInfo.coordinates.lat, locationInfo.coordinates.lng])
 
   return (
     <section className="py-20 bg-muted/50">

@@ -1,7 +1,5 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
-
 export default function Resources() {
   return (
     <section className="py-20">

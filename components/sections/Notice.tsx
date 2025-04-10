@@ -134,6 +134,27 @@ export default function Notice() {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!selectedNotice} onOpenChange={() => setSelectedNotice(null)}>
+        <DialogContent>
+          {selectedNotice && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedNotice.title}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  {selectedNotice.date}
+                </div>
+                <div className="whitespace-pre-line text-muted-foreground">
+                  {selectedNotice.content}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </section>
   )
 } 

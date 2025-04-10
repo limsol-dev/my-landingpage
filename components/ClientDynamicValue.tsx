@@ -17,9 +17,9 @@ export default function ClientDynamicValue() {
       })
     }, 0)
     return () => clearTimeout(timer)
-  }, [])
+  }, [toast])
 
   if (!value) return null
 
-  return <span inject_newsvd="true">{value}</span>
+  return <span>{value}</span>
 } 

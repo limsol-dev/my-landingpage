@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Heart, GraduationCap, Users, Leaf, Clock, ArrowRight, CheckCircle2, Info, CreditCard, UtensilsCrossed, CalendarCheck } from "lucide-react"
+import { Clock, ArrowRight, CheckCircle2, Info } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
@@ -20,9 +20,6 @@ import { useRouter } from 'next/navigation'
 import { useBookingStore } from '@/store/useBookingStore'
 import { Program } from '@/types/program'
 import { programs } from '@/data/programs'
-
-// 포인트 컬러 상수 추가
-const PRIMARY_COLOR = "#2F513F"
 
 export default function Programs() {
   const router = useRouter()
