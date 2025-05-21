@@ -9,7 +9,7 @@ export const programs: Program[] = [
     duration: "8시간",
     price: 190000,
     minParticipants: 4,
-    image: "/programs/healing-camp.jpg",
+    image: "/images/mountain.jpg",
     tags: ["원데이힐링", "자연치유", "스트레스해소"],
     isRecommended: true,
     details: {
@@ -47,7 +47,7 @@ export const programs: Program[] = [
     duration: "2박 3일",
     price: 450000,
     minParticipants: 2,
-    image: "/programs/digital-detox.jpg",
+    image: "/images/healing-room.jpg",
     tags: ["명상", "자연치유", "디지털프리"],
     details: {
       schedule: [
@@ -77,7 +77,7 @@ export const programs: Program[] = [
     duration: "3박 4일",
     price: 580000,
     minParticipants: 10,
-    image: "/programs/teacher.jpg",
+    image: "/images/healing-room.jpg",
     tags: ["명상", "스트레스해소", "동료교류"],
     details: {
       schedule: [
@@ -102,12 +102,13 @@ export const programs: Program[] = [
   },
   {
     id: "family-healing",
-    category: "family",
+    category: "healing",
     title: "가족 힐링 캠프",
     description: "가족과 함께하는 특별한 추억 만들기",
     duration: "1박 2일",
     price: 360000,
-    image: "/programs/family.jpg",
+    minParticipants: 4,
+    image: "/images/healing-room.jpg",
     tags: ["가족활동", "자연체험", "추억만들기"],
     details: {
       schedule: [
@@ -130,12 +131,13 @@ export const programs: Program[] = [
   },
   {
     id: "wellness",
-    category: "health",
+    category: "healing",
     title: "웰니스 디톡스",
     description: "건강한 몸과 마음을 위한 프로그램",
     duration: "4박 5일",
     price: 890000,
-    image: "/programs/wellness.jpg",
+    minParticipants: 1,
+    image: "/images/healing-room.jpg",
     tags: ["건강식", "요가", "디톡스"],
     details: {
       schedule: [
@@ -158,31 +160,35 @@ export const programs: Program[] = [
     }
   },
   {
-    id: "pension-stay",
+    id: "pension",
     category: "pension",
     title: "숙박객 전용 패키지",
-    description: "편안한 휴식과 함께하는 프리미엄 숙박",
+    description: "자연 속에서 편안한 휴식과 힐링을 경험하세요",
     duration: "1박 2일",
     price: 700000,
-    image: "/programs/pension-stay.jpg",
-    tags: ["숙박", "조식포함", "프리미엄"],
+    minParticipants: 15,
+    image: "/images/healing-room.jpg",
+    tags: ["1박2일", "15인기준", "조식포함"],
     details: {
       schedule: [
-        "체크인 15:00 이후",
-        "조식 07:00 - 09:00",
-        "체크아웃 11:00 이전"
+        "15:00 - 체크인",
+        "자유시간 (펜션 주변 산책)",
+        "저녁식사 (자유식)",
+        "다음날 아침식사",
+        "11:00 - 체크아웃"
       ],
       includes: [
-        "객실 1실",
-        "조식 서비스",
-        "주차 1대",
-        "수영장 이용",
-        "바베큐 시설 (재료 별도)"
+        "주차 가능",
+        "와이파이",
+        "TV/에어컨",
+        "기본 침구류",
+        "주방 시설"
       ],
       notice: [
-        "최대 4인 기준입니다",
-        "추가 인원 시 별도 요금",
-        "애완동물 동반 불가"
+        "체크인 15:00 / 체크아웃 11:00",
+        "주차 가능",
+        "전 객실 금연",
+        "가장 빠른 예약 가능 주말: 7월 26일(토요일)"
       ]
     }
   },
@@ -193,7 +199,8 @@ export const programs: Program[] = [
     description: "잠깐의 휴식이 필요할 때, 3시간 단위로 이용하세요",
     duration: "3시간",
     price: 300000,
-    image: "/programs/pension-hourly.jpg",
+    minParticipants: 4,
+    image: "/images/healing-room.jpg",
     tags: ["단기대여", "미팅", "휴식"],
     details: {
       schedule: [
@@ -222,7 +229,8 @@ export const programs: Program[] = [
     description: "주간 또는 야간 시간대를 자유롭게 이용하세요",
     duration: "5시간",
     price: 400000,
-    image: "/programs/pension-daynight.jpg",
+    minParticipants: 6,
+    image: "/images/healing-room.jpg",
     tags: ["주간권", "야간권", "파티"],
     details: {
       schedule: [
@@ -252,7 +260,8 @@ export const programs: Program[] = [
     description: "마음의 평화를 찾는 전문 명상 프로그램",
     duration: "120분",
     price: 80000,
-    image: "/programs/meditation.jpg",
+    minParticipants: 1,
+    image: "/images/yoga-class.jpg",
     tags: ["마음챙김", "스트레스해소", "초보가능"],
     details: {
       schedule: [
@@ -281,6 +290,7 @@ export const programs: Program[] = [
     description: "소리의 진동으로 깊은 이완을 경험하는 프로그램",
     duration: "90분",
     price: 120000,
+    minParticipants: 1,
     image: "/programs/singing-bowl.jpg",
     tags: ["소리치유", "깊은이완", "스트레스해소"],
     details: {
@@ -310,6 +320,7 @@ export const programs: Program[] = [
     description: "자연 속에서 진행되는 힐링 요가 수업",
     duration: "90분",
     price: 70000,
+    minParticipants: 1,
     image: "/programs/yoga.jpg",
     tags: ["요가", "자연명상", "전체레벨"],
     details: {
@@ -340,6 +351,7 @@ export const programs: Program[] = [
     description: "아이디어를 실제 제품으로 만드는 1박 2일 집중 과정",
     duration: "1박 2일",
     price: 990000,
+    minParticipants: 1,
     image: "/programs/prototype.jpg",
     tags: ["제품개발", "실습위주", "소그룹"],
     details: {
@@ -374,6 +386,7 @@ export const programs: Program[] = [
     description: "실전 디지털 마케팅 전략 수립 1박 2일 과정",
     duration: "1박 2일",
     price: 990000,
+    minParticipants: 1,
     image: "/programs/marketing.jpg",
     tags: ["디지털마케팅", "실전과정", "데이터분석"],
     details: {
@@ -409,6 +422,7 @@ export const programs: Program[] = [
     description: "노코드 툴을 활용한 웹사이트 제작 1박 2일 과정",
     duration: "1박 2일",
     price: 990000,
+    minParticipants: 1,
     image: "/programs/website.jpg",
     tags: ["노코드", "웹사이트", "실습위주"],
     details: {

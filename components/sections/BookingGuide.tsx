@@ -22,7 +22,14 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { useBookingStore } from '@/store/useBookingStore'
-import { type Program } from '@/types/program'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 type BookingInfo = {
   date: Date | undefined
@@ -35,7 +42,6 @@ type BookingInfo = {
 
 export default function BookingGuide() {
   const selectedProgram = useBookingStore((state) => state.selectedProgram)
-  const [date, setDate] = useState<Date | undefined>(new Date())
   
   const [bookingInfo, setBookingInfo] = useState<BookingInfo>({
     date: new Date(),
@@ -44,12 +50,8 @@ export default function BookingGuide() {
     addons: {
       "추가 인원": 0,
       "바베큐 세트": 0,
-      "목살 (5인분)": 0,
-      "가브리살 (5인분)": 0,
-      "항정살 (5인분)": 0,
-      "삼겹살 (5인분)": 0,
-      "가스렌지": 0,
-      "조식 추가": 0
+      "조식 추가": 0,
+      "가스렌지": 0
     }
   })
 
@@ -60,50 +62,24 @@ export default function BookingGuide() {
       description: "추가 참여자당 10,000원",
       maxQuantity: Infinity
     },
-    food: [
-      {
-        id: "바베큐 세트",
-        price: 30000,
-        description: "숯+그릴+집게+가위+앞치마 세트 (그릴당 30,000원)",
-        maxQuantity: 6
-      },
-      {
-        id: "목살 (5인분)",
-        price: 50000,
-        description: "국내산 생목살 (5인분당 50,000원)",
-        maxQuantity: Infinity
-      },
-      {
-        id: "가브리살 (5인분)",
-        price: 50000,
-        description: "국내산 생가브리살 (5인분당 50,000원)",
-        maxQuantity: Infinity
-      },
-      {
-        id: "항정살 (5인분)",
-        price: 50000,
-        description: "국내산 생항정살 (5인분당 50,000원)",
-        maxQuantity: Infinity
-      },
-      {
-        id: "삼겹살 (5인분)",
-        price: 50000,
-        description: "국내산 생삼겹살 (5인분당 50,000원)",
-        maxQuantity: Infinity
-      },
-      {
-        id: "가스렌지",
-        price: 20000,
-        description: "가스 포함, 개당 20,000원 (최대 5개)",
-        maxQuantity: 5
-      },
-      {
-        id: "조식 추가",
-        price: 10000,
-        description: "보리밥 제공, 1인당 10,000원",
-        maxQuantity: Infinity
-      }
-    ]
+    bbq: {
+      id: "바베큐 세트",
+      price: 50000,
+      description: "기본 세팅 포함",
+      maxQuantity: 1
+    },
+    breakfast: {
+      id: "조식 추가",
+      price: 15000,
+      description: "1인당 15,000원",
+      maxQuantity: Infinity
+    },
+    gasRange: {
+      id: "가스렌지",
+      price: 10000,
+      description: "1개당 10,000원",
+      maxQuantity: 2
+    }
   }
 
   const bookingSteps = [
@@ -163,59 +139,53 @@ export default function BookingGuide() {
   };
 
   // 총 금액 계산 함수 수정
-  const calculateTotalPrice = (addonQuantities: { [key: string]: number }) => {
-    const basePrice = 700000; // 기본 패키지 가격
+  const calculateTotalPrice = (addonQuantities: Record<string, number>) => {
+    const basePrice = selectedProgram?.price || 700000
     
-    // 추가 인원 비용 계산
-    const additionalPersonCost = (addonQuantities["추가 인원"] || 0) * addons.personnel.price;
-    
-    // 음식 옵션 비용 계산
-    const foodOptionsCost = Object.entries(addonQuantities).reduce((total, [id, quantity]) => {
-      if (id === "추가 인원") return total; // 추가 인원은 위에서 계산했으므로 제외
-      const addon = addons.food.find(a => a.id === id);
-      if (!addon) return total;
-      return total + (addon.price * quantity);
-    }, 0);
-    
-    return basePrice + additionalPersonCost + foodOptionsCost;
+    // 추가 인원 비용
+    const personnelCost = addonQuantities["추가 인원"] * addons.personnel.price
+
+    // 기타 옵션 비용
+    const optionsCost = Object.entries(addonQuantities).reduce((total, [id, quantity]) => {
+      if (id === "추가 인원") return total
+      
+      const addon = 
+        id === "바베큐 세트" ? addons.bbq :
+        id === "조식 추가" ? addons.breakfast :
+        id === "가스렌지" ? addons.gasRange : null
+
+      if (!addon) return total
+      return total + (addon.price * quantity)
+    }, 0)
+
+    return basePrice + personnelCost + optionsCost
   };
 
   // handleQuantityChange 함수 수정
-  const handleQuantityChange = (id: string, value: number | string) => {
-    let newQuantity: number;
-    
-    // 문자열인 경우 숫자로 변환
-    if (typeof value === 'string') {
-      newQuantity = parseInt(value) || 0;
+  const handleQuantityChange = (id: string, change: number) => {
+    const newQuantities = { ...bookingInfo.addons }
+    let newQuantity = (newQuantities[id] || 0) + change
+
+    if (newQuantity < 0) {
+      newQuantity = 0
     } else {
-      newQuantity = value;
-    }
-    
-    // 0 미만이면 0으로 설정
-    if (newQuantity < 0) newQuantity = 0;
-    
-    // 추가 인원인 경우
-    if (id === "추가 인원") {
-      // 최대 인원 제한이 있다면 여기서 설정
-      // if (newQuantity > maxAdditionalPeople) newQuantity = maxAdditionalPeople;
-    } else {
-      // 음식 옵션의 경우 최대 수량 제한
-      const addon = addons.food.find(a => a.id === id);
+      const addon = 
+        id === "추가 인원" ? addons.personnel :
+        id === "바베큐 세트" ? addons.bbq :
+        id === "조식 추가" ? addons.breakfast :
+        id === "가스렌지" ? addons.gasRange : null
+
       if (addon && newQuantity > addon.maxQuantity) {
-        newQuantity = addon.maxQuantity;
+        newQuantity = addon.maxQuantity
       }
     }
 
-    const updatedAddons = {
-      ...bookingInfo.addons,
-      [id]: newQuantity
-    };
-
+    newQuantities[id] = newQuantity
     setBookingInfo({
       ...bookingInfo,
-      addons: updatedAddons,
-      totalPrice: calculateTotalPrice(updatedAddons)
-    });
+      addons: newQuantities,
+      totalPrice: calculateTotalPrice(newQuantities)
+    })
   };
 
   const handleBooking = () => {
@@ -237,6 +207,21 @@ export default function BookingGuide() {
 
   return (
     <>
+      {/* 예약 단계 표시 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {bookingSteps.map(step => (
+          <div key={step.id} className="flex items-center gap-2 p-3">
+            <div className="shrink-0">
+              {step.icon}
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-medium text-sm md:text-base truncate">{step.title}</h4>
+              <p className="text-xs md:text-sm text-muted-foreground truncate">{step.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* 실시간 예약 현황 섹션 */}
       <section id="booking-section" className="py-20 bg-muted/30">
         <div className="container">
@@ -294,20 +279,20 @@ export default function BookingGuide() {
                   {/* 추가 인원 섹션 */}
                   <div>
                     <h4 className="font-medium mb-3">추가 인원</h4>
-                    <div className="p-4 border rounded-lg bg-background">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <p className="font-medium">{addons.personnel.id}</p>
-                          <p className="text-sm text-muted-foreground">
+                    <div className="p-3 md:p-4 border rounded-lg bg-background">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm md:text-base truncate">{addons.personnel.id}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground truncate">
                             {addons.personnel.description}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 md:gap-2 shrink-0">
                           <Button
                             variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleQuantityChange("추가 인원", Math.max(0, bookingInfo.addons["추가 인원"] - 1))}
+                            size="sm"
+                            className="h-7 w-7 md:h-8 md:w-8"
+                            onClick={() => handleQuantityChange("추가 인원", -1)}
                           >
                             -
                           </Button>
@@ -315,14 +300,14 @@ export default function BookingGuide() {
                             type="number"
                             min="0"
                             value={bookingInfo.addons["추가 인원"] || 0}
-                            onChange={(e) => handleQuantityChange("추가 인원", e.target.value)}
-                            className="w-12 h-8 text-center border rounded-md"
+                            onChange={(e) => handleQuantityChange("추가 인원", parseInt(e.target.value) || 0)}
+                            className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
                           />
                           <Button
                             variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleQuantityChange("추가 인원", (bookingInfo.addons["추가 인원"] || 0) + 1)}
+                            size="sm"
+                            className="h-7 w-7 md:h-8 md:w-8"
+                            onClick={() => handleQuantityChange("추가 인원", 1)}
                           >
                             +
                           </Button>
@@ -335,51 +320,55 @@ export default function BookingGuide() {
                   <div>
                     <h4 className="font-medium mb-3">바베큐 제공 내역</h4>
                     <div className="space-y-3">
-                      {addons.food.map((addon) => (
-                        <div key={addon.id} className="p-4 border rounded-lg bg-background">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="font-medium">
-                                {addon.id}
-                                {/* 고기 옵션인 경우 총 인분 표시 */}
-                                {addon.id.includes("(5인분)") && (
-                                  <span className="text-sm text-muted-foreground ml-2">
-                                    (총 {(bookingInfo.addons[addon.id] || 0) * 5}인분)
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {addon.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleQuantityChange(addon.id, Math.max(0, bookingInfo.addons[addon.id] - 1))}
-                              >
-                                -
-                              </Button>
-                              <input
-                                type="number"
-                                min="0"
-                                value={bookingInfo.addons[addon.id] || 0}
-                                onChange={(e) => handleQuantityChange(addon.id, e.target.value)}
-                                className="w-12 h-8 text-center border rounded-md"
-                              />
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleQuantityChange(addon.id, (bookingInfo.addons[addon.id] || 0) + 1)}
-                              >
-                                +
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                      {Object.entries(bookingInfo.addons).map(([id, quantity]) => {
+                        if (id !== "추가 인원") {
+                          const addon = 
+                            id === "바베큐 세트" ? addons.bbq :
+                            id === "조식 추가" ? addons.breakfast :
+                            id === "가스렌지" ? addons.gasRange : null
+
+                          if (addon) {
+                            return (
+                              <div key={id} className="p-3 md:p-4 border rounded-lg bg-background">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="font-medium text-sm md:text-base truncate">{id}</p>
+                                    <p className="text-xs md:text-sm text-muted-foreground truncate">
+                                      {addon.description}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 w-7 md:h-8 md:w-8"
+                                      onClick={() => handleQuantityChange(id, -1)}
+                                    >
+                                      -
+                                    </Button>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      value={quantity || 0}
+                                      onChange={(e) => handleQuantityChange(id, parseInt(e.target.value) || 0)}
+                                      className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 w-7 md:h-8 md:w-8"
+                                      onClick={() => handleQuantityChange(id, 1)}
+                                    >
+                                      +
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                        }
+                        return null;
+                      })}
                     </div>
                   </div>
                 </div>
@@ -389,8 +378,19 @@ export default function BookingGuide() {
             {/* 예약 정보 */}
             <Card>
               <CardContent className="pt-6">
-                <h3 className="font-semibold mb-4">예약 정보</h3>
-                <div className="space-y-6">
+                <div className="space-y-4">
+                  {/* 요금 안내 버튼 */}
+                  <Button 
+                    variant="outline" 
+                    className="w-full flex items-center justify-center gap-2 text-[#2F513F] border-[#2F513F] hover:bg-[#2F513F]/5"
+                    onClick={() => document.getElementById('price-info-dialog')?.click()}
+                  >
+                    <Info className="h-4 w-4" />
+                    요금 안내 자세히 보기
+                  </Button>
+
+                  <h3 className="font-semibold">예약 정보</h3>
+                  
                   {/* 기본 요금 */}
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
@@ -404,22 +404,26 @@ export default function BookingGuide() {
                   {/* 선택된 추가 옵션 표시 */}
                   {Object.entries(bookingInfo.addons).map(([id, quantity]) => {
                     if (quantity > 0) {
-                      const addon = addons.food.find(a => a.id === id) || 
-                                   (id === "추가 인원" ? addons.personnel : null);
-                      if (!addon) return null;
-                      return (
-                        <div key={id} className="p-4 bg-muted rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-sm text-muted-foreground">{addon.id}</p>
-                              <p className="text-sm">수량: {quantity}개</p>
+                      const addon = 
+                        id === "바베큐 세트" ? addons.bbq :
+                        id === "조식 추가" ? addons.breakfast :
+                        id === "가스렌지" ? addons.gasRange : null
+
+                      if (addon) {
+                        return (
+                          <div key={id} className="p-3 md:p-4 bg-muted rounded-lg">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="min-w-0">
+                                <p className="text-xs md:text-sm text-muted-foreground truncate">{id}</p>
+                                <p className="text-xs md:text-sm truncate">수량: {quantity}개</p>
+                              </div>
+                              <p className="font-medium text-sm md:text-base shrink-0">
+                                {(addon.price * quantity).toLocaleString()}원
+                              </p>
                             </div>
-                            <p className="font-medium">
-                              {(addon.price * quantity).toLocaleString()}원
-                            </p>
                           </div>
-                        </div>
-                      );
+                        );
+                      }
                     }
                     return null;
                   })}
@@ -554,6 +558,66 @@ export default function BookingGuide() {
           </div>
         </div>
       </section>
+
+      {/* Dialog 컴포넌트 추가 */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <button id="price-info-dialog" className="hidden">
+            요금 안내
+          </button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">
+              달팽이 아지트 펜션
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* 1. 펜션 요금 */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">1. 펜션 요금</h3>
+              <div className="pl-4 space-y-1 text-sm">
+                <p>• 기준 15인: 700,000원</p>
+                <p>• 추가 인원: 1인당 10,000원</p>
+                <p className="text-muted-foreground text-xs">
+                  (입실 전 인원 변동 시 차액 환불 처리)
+                </p>
+              </div>
+            </div>
+
+            {/* 2. 바베큐 */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">2. 바베큐 (최대 6개)</h3>
+              <div className="pl-4 space-y-1 text-sm">
+                <p>• 그릴당 30,000원</p>
+                <p>• 제공: 숯 + 그릴 + 토치</p>
+                <p>• 장소: 펜션 앞 공간</p>
+                <p className="text-muted-foreground text-xs mt-2">
+                  * 우천 시 가스버너 + 불판 + 부탄가스로 대체됩니다
+                </p>
+              </div>
+            </div>
+
+            {/* 3. 가스버너 */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">3. 가스버너 대여 (최대 5개)</h3>
+              <div className="pl-4 space-y-1 text-sm">
+                <p>• 개당 10,000원</p>
+                <p>• 제공: 가스버너 + 가스 1개</p>
+              </div>
+            </div>
+
+            {/* 4. 예약 안내 */}
+            <div className="space-y-2">
+              <h3 className="font-semibold">4. 예약 안내</h3>
+              <p className="text-sm">
+                예약은 구글 설문지 작성 후 계좌 입금 시 예약 확인 문자가 발송됩니다.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 } 

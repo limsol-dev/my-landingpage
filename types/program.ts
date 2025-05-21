@@ -1,6 +1,6 @@
 export type Program = {
   id: string
-  category: "healing" | "education" | "family" | "health"
+  category: "healing" | "education" | "pension"
   title: string
   description: string
   duration: string
@@ -8,6 +8,7 @@ export type Program = {
   minParticipants: number
   image: string
   tags: string[]
+  isRecommended?: boolean
   details: {
     schedule: string[]
     includes: string[]

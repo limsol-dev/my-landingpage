@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, ArrowRight, CheckCircle2, Info } from "lucide-react"
+import { Clock, ArrowRight, CheckCircle2, Info, CalendarCheck } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
@@ -16,13 +16,11 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
-import { useRouter } from 'next/navigation'
 import { useBookingStore } from '@/store/useBookingStore'
 import { Program } from '@/types/program'
 import { programs } from '@/data/programs'
 
 export default function Programs() {
-  const router = useRouter()
   const setSelectedProgram = useBookingStore((state) => state.setSelectedProgram)
   
   // 초기 선택 프로그램 제거
@@ -140,85 +138,65 @@ export default function Programs() {
 
       {/* 프로그램 상세 정보 다이얼로그 */}
       <Dialog open={!!selectedProgram} onOpenChange={() => setSelectedProgramState(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh]">
+        <DialogContent className="sm:max-w-[500px]">
           {selectedProgram && (
             <>
-              <DialogHeader className="space-y-1">
-                <DialogTitle className="text-lg font-bold">{selectedProgram.title}</DialogTitle>
-                <DialogDescription className="text-xs">
-                  {selectedProgram.description}
-                </DialogDescription>
+              <DialogHeader>
+                <DialogTitle>{selectedProgram.title}</DialogTitle>
+                <DialogDescription>{selectedProgram.description}</DialogDescription>
               </DialogHeader>
-
-              <ScrollArea className="max-h-[calc(80vh-8rem)]">
-                <div className="space-y-3 pr-4">
-                  <div className="relative aspect-[16/9] rounded-lg overflow-hidden">
-                    <Image
-                      src={selectedProgram.image}
-                      alt={selectedProgram.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>{selectedProgram.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 justify-end">
-                      <span className="font-bold">
-                        {selectedProgram.price.toLocaleString()}원
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                      <CalendarCheck className="h-3.5 w-3.5" />
-                      프로그램 일정
-                    </h4>
-                    <ul className="text-xs space-y-1">
-                      {selectedProgram.details.schedule.map((item, index) => (
-                        <li key={index} className="flex gap-1.5 items-center">
-                          <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      포함 사항
-                    </h4>
-                    <ul className="grid grid-cols-2 gap-1 text-xs">
-                      {selectedProgram.details.includes.map((item, index) => (
-                        <li key={index} className="flex gap-1.5 items-center">
-                          <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                      <Info className="h-3.5 w-3.5" />
-                      안내 사항
-                    </h4>
-                    <ul className="text-xs space-y-1">
-                      {selectedProgram.details.notice.map((item, index) => (
-                        <li key={index} className="flex gap-1.5 items-center">
-                          <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="h-4 w-4" />
+                  {selectedProgram.duration}
                 </div>
-              </ScrollArea>
+
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    프로그램 일정
+                  </h4>
+                  <ul className="grid gap-1 text-xs">
+                    {selectedProgram.details.schedule.map((item, index) => (
+                      <li key={index} className="flex gap-1.5 items-center">
+                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    포함 사항
+                  </h4>
+                  <ul className="grid grid-cols-2 gap-1 text-xs">
+                    {selectedProgram.details.includes.map((item, index) => (
+                      <li key={index} className="flex gap-1.5 items-center">
+                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="space-y-1.5">
+                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                    <Info className="h-3.5 w-3.5" />
+                    안내 사항
+                  </h4>
+                  <ul className="text-xs space-y-1">
+                    {selectedProgram.details.notice.map((item, index) => (
+                      <li key={index} className="flex gap-1.5 items-center">
+                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
 
               <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
                 <Button 

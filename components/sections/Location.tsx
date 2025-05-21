@@ -5,22 +5,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { MapPin, Navigation, Bus, Car } from "lucide-react"
 
+interface KakaoLatLng {
+  getLat(): number;
+  getLng(): number;
+}
+
 interface KakaoMapOptions {
-  center: any;
+  center: KakaoLatLng;
   level: number;
 }
 
 interface MarkerOptions {
-  position: any;
+  position: KakaoLatLng;
+}
+
+interface KakaoMarker {
+  setMap(map: KakaoMap | null): void;
+}
+
+interface KakaoMap {
+  setCenter(position: KakaoLatLng): void;
+  setLevel(level: number): void;
+  getLevel(): number;
+  getCenter(): KakaoLatLng;
 }
 
 declare global {
   interface Window {
     kakao: {
       maps: {
-        Map: new (container: HTMLElement, options: KakaoMapOptions) => any;
-        LatLng: new (lat: number, lng: number) => any;
-        Marker: new (options: MarkerOptions) => any;
+        Map: new (container: HTMLElement, options: KakaoMapOptions) => KakaoMap;
+        LatLng: new (lat: number, lng: number) => KakaoLatLng;
+        Marker: new (options: MarkerOptions) => KakaoMarker;
       };
     };
   }

@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Eye, Users, BedDouble, UtensilsCrossed, Users2 } from "lucide-react"
+import { ArrowRight, Eye, BedDouble, UtensilsCrossed, Users2 } from "lucide-react"
 import Image from "next/image"
 
 type Room = {
@@ -22,7 +22,7 @@ export default function HealingSpaces() {
       title: "회의실",
       subTitle: "소규모 모임과 강의를 위한 공간",
       capacity: "최대 20인",
-      image: "/spaces/meeting-room.jpg",
+      image: "/images/healing-room.jpg",
       icon: <Users2 className="h-5 w-5" />
     },
     {
@@ -30,7 +30,7 @@ export default function HealingSpaces() {
       title: "스탠다드룸",
       subTitle: "아늑한 휴식 공간",
       capacity: "2인실",
-      image: "/spaces/standard-room.jpg",
+      image: "/images/healing-room.jpg",
       icon: <BedDouble className="h-5 w-5" />
     },
     {
@@ -38,7 +38,7 @@ export default function HealingSpaces() {
       title: "디럭스룸",
       subTitle: "편안한 휴식 공간",
       capacity: "2-3인실",
-      image: "/spaces/deluxe-room.jpg",
+      image: "/images/healing-room.jpg",
       icon: <BedDouble className="h-5 w-5" />
     },
     {
@@ -46,7 +46,7 @@ export default function HealingSpaces() {
       title: "다이닝룸",
       subTitle: "건강한 식사를 위한 공간",
       capacity: "최대 30인",
-      image: "/spaces/dining-room.jpg",
+      image: "/images/healing-room.jpg",
       icon: <UtensilsCrossed className="h-5 w-5" />
     }
   ]
@@ -63,17 +63,14 @@ export default function HealingSpaces() {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* VR 투어 섹션 */}
-          <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+          <div className="relative aspect-video mb-8 rounded-lg overflow-hidden">
             <Image
-              src="/spaces/vr-preview.jpg"
-              alt="VR Tour Preview"
+              src="/images/vr-tour.jpg"
+              alt="360도 VR 투어"
               fill
-              className="object-cover opacity-80"
+              className="object-cover"
             />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-              <Eye className="h-16 w-16 mb-4" />
-              <h3 className="text-2xl font-bold mb-2">360° VR 투어</h3>
-              <p className="text-lg mb-6">실제 공간을 가상으로 체험해보세요</p>
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
               <Button variant="outline" className="text-white border-white hover:bg-white/20">
                 VR 투어 시작하기
                 <ArrowRight className="ml-2 h-5 w-5" />
