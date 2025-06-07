@@ -9,41 +9,28 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Reservation {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // 예약 정보
-  selectedDate DateTime
-  roomType     String
-  adults       Int
-  children     Int
-  
-  // 옵션
-  breakfast    Boolean @default(false)
-  bbqType      String?
-  bbqQuantity  Int     @default(0)
-  bus          Boolean @default(false)
-  
-  // 가격
-  totalPrice   Float
-  
-  // 고객 정보
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  date      DateTime
+  roomType  String
+  adults    Int
+  children  Int
+  options   String  // JSON string
+  totalPrice Int
+
   customerName  String
   customerPhone String
   customerEmail String
-  
-  // 결제 정보
-  paymentId    String?
-  paymentStatus String  @default("pending") // pending, completed, failed, cancelled
-  
-  // 예약 상태
-  status       String  @default("pending") // pending, confirmed, cancelled
+
+  programId String?
+  status    String @default("pending")
 }
 
 model Room {
@@ -51,7 +38,7 @@ model Room {
   type      String   // standard, deluxe, suite
   basePrice Float
   maxGuests Int
-  amenities String[] // ["wifi", "tv", "aircon", ...]
+  amenities String   // JSON string of ["wifi", "tv", "aircon", ...]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
