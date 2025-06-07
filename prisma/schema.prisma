@@ -1,0 +1,69 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 예약 정보
+  selectedDate DateTime
+  roomType     String
+  adults       Int
+  children     Int
+  
+  // 옵션
+  breakfast    Boolean @default(false)
+  bbqType      String?
+  bbqQuantity  Int     @default(0)
+  bus          Boolean @default(false)
+  
+  // 가격
+  totalPrice   Float
+  
+  // 고객 정보
+  customerName  String
+  customerPhone String
+  customerEmail String
+  
+  // 결제 정보
+  paymentId    String?
+  paymentStatus String  @default("pending") // pending, completed, failed, cancelled
+  
+  // 예약 상태
+  status       String  @default("pending") // pending, confirmed, cancelled
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  type      String   // standard, deluxe, suite
+  basePrice Float
+  maxGuests Int
+  amenities String[] // ["wifi", "tv", "aircon", ...]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PriceConfig {
+  id        String   @id @default(cuid())
+  name      String   @unique // "breakfast", "bbq_basic", "bbq_standard", "bbq_premium", "bus"
+  price     Float
+  unit      String   // "per_person", "per_group", "fixed"
+  groupSize Int?     // For per_group pricing
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
