@@ -6,44 +6,50 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { toast, Toaster } from 'sonner'
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: ''
+  })
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError('')
-
-    const formData = new FormData(e.currentTarget)
-    const username = formData.get('username')
-    const password = formData.get('password')
 
     try {
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(credentials)
       })
 
-      if (!response.ok) {
-        throw new Error('로그인에 실패했습니다.')
-      }
+      const data = await response.json()
 
-      router.push('/admin/dashboard')
-    } catch (err) {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.')
+      if (data.success) {
+        toast.success('로그인 성공!')
+        setTimeout(() => {
+          router.push('/admin/dashboard')
+          router.refresh()
+        }, 1000)
+      } else {
+        toast.error('이메일 또는 비밀번호가 올바르지 않습니다.')
+      }
+    } catch (error) {
+      toast.error('로그인 중 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Toaster position="top-center" />
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl text-center">관리자 로그인</CardTitle>
@@ -51,31 +57,35 @@ export default function AdminLoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">아이디</Label>
+              <Label htmlFor="email">이메일</Label>
               <Input
-                id="username"
-                name="username"
-                type="text"
+                id="email"
+                type="email"
+                placeholder="admin@example.com"
+                value={credentials.email}
+                onChange={(e) => setCredentials(prev => ({
+                  ...prev,
+                  email: e.target.value
+                }))}
                 required
-                placeholder="관리자 아이디를 입력하세요"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">비밀번호</Label>
               <Input
                 id="password"
-                name="password"
                 type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials(prev => ({
+                  ...prev,
+                  password: e.target.value
+                }))}
                 required
-                placeholder="비밀번호를 입력하세요"
               />
             </div>
-            {error && (
-              <p className="text-sm text-red-500 text-center">{error}</p>
-            )}
-            <Button
-              type="submit"
-              className="w-full"
+            <Button 
+              type="submit" 
+              className="w-full" 
               disabled={isLoading}
             >
               {isLoading ? '로그인 중...' : '로그인'}

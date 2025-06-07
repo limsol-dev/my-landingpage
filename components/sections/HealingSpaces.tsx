@@ -3,7 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Eye, BedDouble, UtensilsCrossed, Users2 } from "lucide-react"
+import { ArrowRight, BedDouble, Sofa, UtensilsCrossed, DoorOpen } from "lucide-react"
 import Image from "next/image"
 
 type Room = {
@@ -18,35 +18,35 @@ type Room = {
 export default function HealingSpaces() {
   const rooms: Room[] = [
     {
-      id: "meeting",
-      title: "회의실",
-      subTitle: "소규모 모임과 강의를 위한 공간",
-      capacity: "최대 20인",
-      image: "/images/healing-room.jpg",
-      icon: <Users2 className="h-5 w-5" />
-    },
-    {
-      id: "small-1",
-      title: "스탠다드룸",
+      id: "room1",
+      title: "방 1",
       subTitle: "아늑한 휴식 공간",
-      capacity: "2인실",
-      image: "/images/healing-room.jpg",
+      capacity: "2-3인",
+      image: "/images/room1.jpg",
       icon: <BedDouble className="h-5 w-5" />
     },
     {
-      id: "small-2",
-      title: "디럭스룸",
+      id: "room2",
+      title: "방 2",
       subTitle: "편안한 휴식 공간",
-      capacity: "2-3인실",
-      image: "/images/healing-room.jpg",
+      capacity: "2-3인",
+      image: "/images/room2.jpg",
       icon: <BedDouble className="h-5 w-5" />
     },
     {
-      id: "dining",
-      title: "다이닝룸",
-      subTitle: "건강한 식사를 위한 공간",
-      capacity: "최대 30인",
-      image: "/images/healing-room.jpg",
+      id: "living",
+      title: "거실",
+      subTitle: "편안한 휴식과 대화의 공간",
+      capacity: "전체 이용",
+      image: "/images/living.jpg",
+      icon: <Sofa className="h-5 w-5" />
+    },
+    {
+      id: "kitchen",
+      title: "부엌",
+      subTitle: "요리와 식사를 위한 공간",
+      capacity: "전체 이용",
+      image: "/images/kitchen.jpg",
       icon: <UtensilsCrossed className="h-5 w-5" />
     }
   ]
@@ -55,9 +55,9 @@ export default function HealingSpaces() {
     <section className="py-20 bg-muted/30">
       <div className="container">
         <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl font-bold">힐링 스페이스 둘러보기</h2>
+          <h2 className="text-3xl font-bold">달팽이아지트펜션 공간 구성</h2>
           <p className="text-muted-foreground">
-            지친 일상에서 하나씩 벗어날 수 있는 특별한 공간
+            작은방 2개 또는 큰방 1개로 선택하여 사용 가능한 프라이빗한 공간
           </p>
         </div>
 
@@ -70,7 +70,9 @@ export default function HealingSpaces() {
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-center p-6">
+              <h3 className="text-white text-xl font-semibold mb-2">360° VR 투어로 미리 체험하기</h3>
+              <p className="text-white/80 mb-4">작은방 2개 또는 큰방 1개로 선택 가능</p>
               <Button variant="outline" className="text-white border-white hover:bg-white/20">
                 VR 투어 시작하기
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -112,7 +114,7 @@ export default function HealingSpaces() {
         <div className="mt-12 text-center space-y-4">
           <div className="flex justify-center gap-4">
             <Badge variant="outline" className="px-4 py-2">
-              360° VR 투어 제공
+              작은방 2개 또는 큰방 1개 선택 가능
             </Badge>
             <Badge variant="outline" className="px-4 py-2">
               전 객실 자연 조망
@@ -122,7 +124,7 @@ export default function HealingSpaces() {
             </Badge>
           </div>
           <Button size="lg" variant="outline" className="mt-6">
-            전체 시설 둘러보기
+            예약하기
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>

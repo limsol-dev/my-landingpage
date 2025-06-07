@@ -16,12 +16,12 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
-import { useBookingStore } from '@/store/useBookingStore'
+import { useReservationStore } from '@/store/useReservationStore'
 import { Program } from '@/types/program'
 import { programs } from '@/data/programs'
 
 export default function Programs() {
-  const setSelectedProgram = useBookingStore((state) => state.setSelectedProgram)
+  const setProgramId = useReservationStore((state) => state.setProgramId)
   
   // 초기 선택 프로그램 제거
   const [selectedProgram, setSelectedProgramState] = useState<Program | null>(null)
@@ -36,13 +36,15 @@ export default function Programs() {
   ]
 
   const handleBooking = () => {
-    setSelectedProgram(selectedProgram)
-    setSelectedProgramState(null) // 모달 닫기
-    
-    // 프로그램 예약하기 섹션으로 스크롤
-    const bookingSection = document.getElementById('booking-section')
-    if (bookingSection) {
-      bookingSection.scrollIntoView({ behavior: 'smooth' })
+    if (selectedProgram) {
+      setProgramId(selectedProgram.id)
+      setSelectedProgramState(null) // 모달 닫기
+      
+      // 프로그램 예약하기 섹션으로 스크롤
+      const bookingSection = document.getElementById('booking-section')
+      if (bookingSection) {
+        bookingSection.scrollIntoView({ behavior: 'smooth' })
+      }
     }
   }
 
