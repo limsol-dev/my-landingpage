@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,8 @@ import {
 import { InfoIcon } from 'lucide-react'
 
 export default function ReservationForm() {
+  const searchParams = useSearchParams()
+  const [selectedProgram, setSelectedProgram] = useState<{id: string, name: string} | null>(null)
   const [reservation, setReservation] = useState<ReservationInfo>({
     checkIn: new Date(),
     checkOut: new Date(),
@@ -51,6 +54,21 @@ export default function ReservationForm() {
 
   const [basePrice, setBasePrice] = useState(150000) // 기본 객실 가격
   const [grillPrice, setGrillPrice] = useState(50000) // BBQ 그릴 대여 가격
+
+  // URL 파라미터에서 프로그램 정보 읽기
+  useEffect(() => {
+    if (!searchParams) return
+    
+    const programId = searchParams.get('programId')
+    const programName = searchParams.get('programName')
+    
+    if (programId && programName) {
+      setSelectedProgram({
+        id: programId,
+        name: decodeURIComponent(programName)
+      })
+    }
+  }, [searchParams])
 
   const handleGuestChange = (adults: number, children: number) => {
     setReservation(prev => ({
@@ -96,6 +114,21 @@ export default function ReservationForm() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* 선택된 프로그램 정보 표시 */}
+      {selectedProgram && (
+        <Card className="mb-6 bg-[#2F513F]/5 border-[#2F513F]">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-[#2F513F] rounded-full"></div>
+              <div>
+                <p className="text-sm text-muted-foreground">선택된 프로그램</p>
+                <h3 className="text-lg font-semibold text-[#2F513F]">{selectedProgram.name}</h3>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <Card className="border-2 border-primary">
         <CardHeader>
           <CardTitle>예약하기</CardTitle>

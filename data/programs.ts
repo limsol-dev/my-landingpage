@@ -162,7 +162,7 @@ export const programs: Program[] = [
   {
     id: "pension",
     category: "pension",
-    title: "숙박객 전용 패키지",
+    title: "펜션기본15인",
     description: "자연 속에서 편안한 휴식과 힐링을 경험하세요",
     duration: "1박 2일",
     price: 700000,

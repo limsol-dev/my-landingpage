@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, ArrowRight, CheckCircle2, Info, CalendarCheck } from "lucide-react"
+import { Clock, ArrowRight, CheckCircle2, Info, CalendarCheck, Star, Crown } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
@@ -35,12 +35,20 @@ export default function Programs() {
     { id: "health", name: "건강" }
   ]
 
+  // 추천 프로그램 목록
+  const recommendedPrograms = ["pension", "healing-camp", "prototype-workshop"]
+  
+  // 추천 프로그램인지 확인하는 함수
+  const isRecommended = (programId: string) => {
+    return recommendedPrograms.includes(programId)
+  }
+
   const handleBooking = () => {
     if (selectedProgram) {
       setProgramId(selectedProgram.id)
       setSelectedProgramState(null) // 모달 닫기
       
-      // 프로그램 예약하기 섹션으로 스크롤
+      // BookingGuide 섹션으로 스크롤
       const bookingSection = document.getElementById('booking-section')
       if (bookingSection) {
         bookingSection.scrollIntoView({ behavior: 'smooth' })
@@ -87,7 +95,8 @@ export default function Programs() {
                       key={program.id} 
                       className={cn(
                         "group overflow-hidden border-none shadow-lg relative",
-                        (program.id === "pension-stay" || program.id === selectedProgram?.id) && "ring-2 ring-[#2F513F]"
+                        (program.id === "pension-stay" || program.id === selectedProgram?.id) && "ring-2 ring-[#2F513F]",
+                        isRecommended(program.id) && "ring-4 ring-[#2F513F] shadow-xl"
                       )}
                     >
                       <div className="relative aspect-[4/3]">
@@ -97,6 +106,13 @@ export default function Programs() {
                           fill
                           className="object-cover"
                         />
+                        {/* 추천 배지 */}
+                        {isRecommended(program.id) && (
+                          <div className="absolute top-3 right-3 bg-gradient-to-r from-[#2F513F] to-[#3d6b4f] text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                            <Crown className="h-3 w-3" />
+                            <span className="text-xs font-bold">추천</span>
+                          </div>
+                        )}
                       </div>
                       <CardContent className="p-6">
                         <div className="space-y-4">
@@ -108,7 +124,12 @@ export default function Programs() {
                             ))}
                           </div>
                           <div>
-                            <h3 className="font-bold mb-2">{program.title}</h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="font-bold">{program.title}</h3>
+                              {isRecommended(program.id) && (
+                                <Star className="h-4 w-4 text-[#2F513F] fill-[#2F513F]" />
+                              )}
+                            </div>
                             <p className="text-sm text-muted-foreground">{program.description}</p>
                           </div>
                           <div className="flex items-center justify-between">
@@ -122,10 +143,15 @@ export default function Programs() {
                             </div>
                           </div>
                           <Button 
-                            className="w-full bg-[#2F513F] hover:bg-[#2F513F]/90"
+                            className={cn(
+                              "w-full",
+                              isRecommended(program.id) 
+                                ? "bg-gradient-to-r from-[#2F513F] to-[#3d6b4f] hover:from-[#3d6b4f] hover:to-[#4a7b5c] text-white shadow-lg"
+                                : "bg-[#2F513F] hover:bg-[#2F513F]/90"
+                            )}
                             onClick={() => setSelectedProgramState(program)}
                           >
-                            자세히 보기
+                            {isRecommended(program.id) ? "추천 프로그램 보기" : "자세히 보기"}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
@@ -140,81 +166,125 @@ export default function Programs() {
 
       {/* 프로그램 상세 정보 다이얼로그 */}
       <Dialog open={!!selectedProgram} onOpenChange={() => setSelectedProgramState(null)}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           {selectedProgram && (
             <>
-              <DialogHeader>
-                <DialogTitle>{selectedProgram.title}</DialogTitle>
-                <DialogDescription>{selectedProgram.description}</DialogDescription>
+              {/* 헤더 영역 개선 */}
+              <DialogHeader className="pb-6 border-b">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <DialogTitle className="text-2xl font-bold text-[#2F513F]">
+                      {selectedProgram.title}
+                    </DialogTitle>
+                    <DialogDescription className="text-base leading-relaxed">
+                      {selectedProgram.description}
+                    </DialogDescription>
+                  </div>
+                  {isRecommended(selectedProgram.id) && (
+                    <div className="bg-gradient-to-r from-[#2F513F] to-[#3d6b4f] text-white px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                      <Crown className="h-3 w-3" />
+                      <span className="text-xs font-bold">추천</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* 기본 정보 카드 */}
+                <div className="mt-4 p-4 bg-[#2F513F]/5 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-[#2F513F]" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">소요시간</p>
+                        <p className="font-semibold">{selectedProgram.duration}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarCheck className="h-5 w-5 text-[#2F513F]" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">가격</p>
+                        <p className="font-semibold">{selectedProgram.price.toLocaleString()}원</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </DialogHeader>
               
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  {selectedProgram.duration}
-                </div>
-
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
+              <div className="space-y-6 py-6">
+                {/* 프로그램 일정 */}
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold flex items-center gap-2 text-[#2F513F]">
+                    <CheckCircle2 className="h-5 w-5" />
                     프로그램 일정
                   </h4>
-                  <ul className="grid gap-1 text-xs">
-                    {selectedProgram.details.schedule.map((item, index) => (
-                      <li key={index} className="flex gap-1.5 items-center">
-                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <ul className="space-y-2">
+                      {selectedProgram.details.schedule.map((item, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                          <div className="w-2 h-2 rounded-full bg-[#2F513F] mt-2 flex-shrink-0" />
+                          <span className="text-sm leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
+                {/* 포함 사항 */}
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold flex items-center gap-2 text-[#2F513F]">
+                    <CheckCircle2 className="h-5 w-5" />
                     포함 사항
                   </h4>
-                  <ul className="grid grid-cols-2 gap-1 text-xs">
-                    {selectedProgram.details.includes.map((item, index) => (
-                      <li key={index} className="flex gap-1.5 items-center">
-                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {selectedProgram.details.includes.map((item, index) => (
+                        <li key={index} className="flex items-center gap-3">
+                          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-sm">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                    <Info className="h-3.5 w-3.5" />
+                {/* 안내 사항 */}
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold flex items-center gap-2 text-[#2F513F]">
+                    <Info className="h-5 w-5" />
                     안내 사항
                   </h4>
-                  <ul className="text-xs space-y-1">
-                    {selectedProgram.details.notice.map((item, index) => (
-                      <li key={index} className="flex gap-1.5 items-center">
-                        <div className="h-1 w-1 rounded-full bg-[#2F513F]" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <ul className="space-y-2">
+                      {selectedProgram.details.notice.map((item, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                          <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm leading-relaxed">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-3 pt-2 border-t">
+              {/* 하단 버튼 영역 개선 */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
                 <Button 
                   variant="outline" 
-                  size="sm"
-                  className="h-8 px-3 text-xs"
+                  className="flex-1 h-11 text-sm font-medium"
                   onClick={() => setSelectedProgramState(null)}
                 >
                   닫기
                 </Button>
                 <Button 
-                  size="sm"
-                  className="h-8 px-3 text-xs bg-[#2F513F] hover:bg-[#2F513F]/90"
+                  className={cn(
+                    "flex-1 h-11 text-sm font-medium",
+                    isRecommended(selectedProgram.id)
+                      ? "bg-gradient-to-r from-[#2F513F] to-[#3d6b4f] hover:from-[#3d6b4f] hover:to-[#4a7b5c] shadow-lg"
+                      : "bg-[#2F513F] hover:bg-[#2F513F]/90"
+                  )}
                   onClick={handleBooking}
                 >
-                  예약하기
+                  {isRecommended(selectedProgram.id) ? "추천 프로그램 예약하기" : "예약하기"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </>

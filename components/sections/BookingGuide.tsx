@@ -20,8 +20,10 @@ import {
   Info,
   CreditCard
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useBookingStore } from '@/store/useBookingStore'
+import { useReservationStore } from '@/store/useReservationStore'
+import { programs } from '@/data/programs'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +34,8 @@ import {
 } from "@/components/ui/dialog"
 
 type BookingInfo = {
-  date: Date | undefined
+  checkIn: Date | undefined
+  checkOut: Date | undefined
   program: string
   totalPrice: number
   addons: {
@@ -42,16 +45,24 @@ type BookingInfo = {
 
 export default function BookingGuide() {
   const selectedProgram = useBookingStore((state) => state.selectedProgram)
+  const programId = useReservationStore((state) => state.programId)
+  
+  // 선택된 프로그램 정보 가져오기
+  const currentProgram = programId ? programs.find(p => p.id === programId) : null
+  
+  // 달력 선택 상태 관리
+  const [isSelectingCheckIn, setIsSelectingCheckIn] = useState(true)
   
   const [bookingInfo, setBookingInfo] = useState<BookingInfo>({
-    date: new Date(),
-    program: selectedProgram?.id || "",
-    totalPrice: selectedProgram?.price || 700000,
+    checkIn: undefined, // 기본값을 undefined로 설정
+    checkOut: undefined, // 기본값을 undefined로 설정
+    program: currentProgram?.id || selectedProgram?.id || "",
+    totalPrice: currentProgram?.price || selectedProgram?.price || 700000,
     addons: {
       "추가 인원": 0,
-      "바베큐 세트": 0,
-      "조식 추가": 0,
-      "가스렌지": 0
+      "그릴 대여": 0,
+      "고기만 셋트 (5인 기준)": 0,
+      "고기+식사 셋트 (5인 기준)": 0
     }
   })
 
@@ -59,26 +70,26 @@ export default function BookingGuide() {
     personnel: {
       id: "추가 인원",
       price: 10000,
-      description: "추가 참여자당 10,000원",
+      description: "1인당 10,000원",
       maxQuantity: Infinity
     },
-    bbq: {
-      id: "바베큐 세트",
+    grill: {
+      id: "그릴 대여",
+      price: 30000,
+      description: "그릴당 30,000원",
+      maxQuantity: 6
+    },
+    meatOnly: {
+      id: "고기만 셋트 (5인 기준)",
       price: 50000,
-      description: "기본 세팅 포함",
-      maxQuantity: 1
-    },
-    breakfast: {
-      id: "조식 추가",
-      price: 15000,
-      description: "1인당 15,000원",
+      description: "5인 기준 50,000원 (1인 10,000원)",
       maxQuantity: Infinity
     },
-    gasRange: {
-      id: "가스렌지",
-      price: 10000,
-      description: "1개당 10,000원",
-      maxQuantity: 2
+    meatMeal: {
+      id: "고기+식사 셋트 (5인 기준)",
+      price: 75000,
+      description: "5인 기준 75,000원 (1인 15,000원)",
+      maxQuantity: Infinity
     }
   }
 
@@ -140,25 +151,21 @@ export default function BookingGuide() {
 
   // 총 금액 계산 함수 수정
   const calculateTotalPrice = (addonQuantities: Record<string, number>) => {
-    const basePrice = selectedProgram?.price || 700000
+    const basePrice = currentProgram?.price || selectedProgram?.price || 700000
     
-    // 추가 인원 비용
-    const personnelCost = addonQuantities["추가 인원"] * addons.personnel.price
-
-    // 기타 옵션 비용
+    // 모든 옵션 비용 계산
     const optionsCost = Object.entries(addonQuantities).reduce((total, [id, quantity]) => {
-      if (id === "추가 인원") return total
-      
       const addon = 
-        id === "바베큐 세트" ? addons.bbq :
-        id === "조식 추가" ? addons.breakfast :
-        id === "가스렌지" ? addons.gasRange : null
+        id === "추가 인원" ? addons.personnel :
+        id === "그릴 대여" ? addons.grill :
+        id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+        id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
 
       if (!addon) return total
       return total + (addon.price * quantity)
     }, 0)
 
-    return basePrice + personnelCost + optionsCost
+    return basePrice + optionsCost
   };
 
   // handleQuantityChange 함수 수정
@@ -171,9 +178,9 @@ export default function BookingGuide() {
     } else {
       const addon = 
         id === "추가 인원" ? addons.personnel :
-        id === "바베큐 세트" ? addons.bbq :
-        id === "조식 추가" ? addons.breakfast :
-        id === "가스렌지" ? addons.gasRange : null
+        id === "그릴 대여" ? addons.grill :
+        id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+        id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
 
       if (addon && newQuantity > addon.maxQuantity) {
         newQuantity = addon.maxQuantity
@@ -188,6 +195,93 @@ export default function BookingGuide() {
     })
   };
 
+  // 직접 수량 설정 함수 추가
+  const handleQuantitySet = (id: string, value: number) => {
+    const newQuantities = { ...bookingInfo.addons }
+    let newQuantity = value
+
+    if (newQuantity < 0) {
+      newQuantity = 0
+    } else {
+      const addon = 
+        id === "추가 인원" ? addons.personnel :
+        id === "그릴 대여" ? addons.grill :
+        id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+        id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
+
+      if (addon && newQuantity > addon.maxQuantity) {
+        newQuantity = addon.maxQuantity
+      }
+    }
+
+    newQuantities[id] = newQuantity
+    setBookingInfo({
+      ...bookingInfo,
+      addons: newQuantities,
+      totalPrice: calculateTotalPrice(newQuantities)
+    })
+  };
+
+  // 달력 날짜 선택 핸들러 - 체크인 날짜 재클릭 불가
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return
+    
+    if (!bookingInfo.checkIn) {
+      // 첫 번째 클릭: 체크인 날짜 선택 -> 기본 1박2일 설정
+      const checkOutDate = new Date(date.getTime() + 24 * 60 * 60 * 1000) // 1박2일 (다음날)
+      setBookingInfo(prev => ({
+        ...prev,
+        checkIn: date,
+        checkOut: checkOutDate
+      }))
+      setIsSelectingCheckIn(false) // 다음은 체크아웃 선택
+    } else if (date.getTime() === bookingInfo.checkIn.getTime()) {
+      // 체크인 날짜를 다시 클릭한 경우: 아무것도 하지 않음
+      return
+    } else {
+      // 다른 날짜 클릭: 체크아웃 날짜 변경 또는 새로운 체크인으로 리셋
+      if (date > bookingInfo.checkIn) {
+        // 체크인 이후 날짜: 체크아웃으로 설정
+        setBookingInfo(prev => ({
+          ...prev,
+          checkOut: date
+        }))
+      } else {
+        // 체크인 이전 날짜: 새로운 체크인으로 리셋 -> 기본 1박2일
+        const checkOutDate = new Date(date.getTime() + 24 * 60 * 60 * 1000) // 1박2일 (다음날)
+        setBookingInfo(prev => ({
+          ...prev,
+          checkIn: date,
+          checkOut: checkOutDate
+        }))
+        setIsSelectingCheckIn(false)
+      }
+    }
+  }
+  
+  // 숙박 일수 계산
+  const calculateNights = () => {
+    if (!bookingInfo.checkIn || !bookingInfo.checkOut) return 1 // 기본 1박으로 설정
+    const timeDiff = bookingInfo.checkOut.getTime() - bookingInfo.checkIn.getTime()
+    return Math.ceil(timeDiff / (1000 * 3600 * 24))
+  }
+  
+  // 날짜 비활성화 로직
+  const isDateDisabled = (date: Date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // 오늘 이전 날짜는 모두 비활성화
+    if (date < today) return true
+    
+    // 체크아웃 선택 중일 때는 체크인 날짜 이전은 비활성화
+    if (!isSelectingCheckIn && bookingInfo.checkIn) {
+      return date <= bookingInfo.checkIn
+    }
+    
+    return false
+  }
+
   const handleBooking = () => {
     alert("예약이 성공적으로 완료되었습니다!")
   }
@@ -198,9 +292,10 @@ export default function BookingGuide() {
   // 현재 총 금액
   const currentTotalPrice = calculateTotalPrice(bookingInfo.addons);
   
-  // 1인당 금액
+  // 1인당 금액 (숙박일수 반영)
+  const totalPriceWithNights = currentTotalPrice * calculateNights()
   const perPersonPrice = calculatePerPersonPrice(
-    currentTotalPrice,
+    totalPriceWithNights,
     15,
     bookingInfo.addons["추가 인원"] || 0
   );
@@ -237,16 +332,207 @@ export default function BookingGuide() {
             <Card>
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-4">날짜 선택</h3>
-                <CalendarComponent
-                  mode="single"
-                  selected={bookingInfo.date}
-                  onSelect={(date) => setBookingInfo({ ...bookingInfo, date })}
-                  className="rounded-md border"
-                />
+                <div className="space-y-6">
+                  {/* 날짜 선택 헤더 */}
+                  <div className="flex items-center justify-center gap-8 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <label className="text-sm text-gray-600 font-medium">체크인</label>
+                      <div className="mt-1 px-4 py-2 bg-white rounded-lg border border-gray-200 min-w-[120px]">
+                        <span className="text-lg font-semibold">
+                          {bookingInfo.checkIn ? 
+                            bookingInfo.checkIn.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) 
+                            : '날짜 선택'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center">
+                      <ArrowRight className="h-5 w-5 text-gray-400" />
+                      {bookingInfo.checkIn && bookingInfo.checkOut && (
+                        <span className="text-sm font-medium text-[#2F513F] mt-1">
+                          {calculateNights()}박 {calculateNights() + 1}일
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-center">
+                      <label className="text-sm text-gray-600 font-medium">체크아웃</label>
+                      <div className="mt-1 px-4 py-2 bg-white rounded-lg border border-gray-200 min-w-[120px]">
+                        <span className="text-lg font-semibold">
+                          {bookingInfo.checkOut ? 
+                            bookingInfo.checkOut.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) 
+                            : '날짜 선택'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 선택 모드 안내 - 강조된 스타일 */}
+                  {!bookingInfo.checkIn ? (
+                    // 기본 상태: 체크인 날짜 선택 강조
+                    <div className="text-center p-4 bg-gradient-to-r from-[#2F513F] to-[#3d6b4f] rounded-lg shadow-lg animate-pulse">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <CalendarIcon className="h-6 w-6 text-white" />
+                        <span className="text-lg font-bold text-white">
+                          체크인 날짜를 선택해주세요!!
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-100">
+                        원하시는 체크인 날짜를 달력에서 클릭해주세요
+                      </p>
+                    </div>
+                  ) : !bookingInfo.checkOut ? (
+                    // 체크인 선택됨: 체크아웃 날짜 선택 안내
+                    <div className="text-center p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <CalendarIcon className="h-5 w-5 text-blue-600" />
+                        <span className="text-base font-semibold text-blue-800">
+                          체크아웃 날짜를 선택해주세요
+                        </span>
+                      </div>
+                      <p className="text-sm text-blue-600">
+                        체크인 날짜 이후의 날짜를 선택해주세요
+                      </p>
+                    </div>
+                  ) : (
+                    // 모두 선택됨: 완료 상태
+                    <div className="text-center p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <span className="text-base font-semibold text-green-800">
+                          날짜 선택 완료!
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-600">
+                        날짜를 다시 선택하려면 달력을 클릭해주세요
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* 개선된 달력 */}
+                  <div className="calendar-container">
+                    <CalendarComponent
+                      mode="range"
+                      selected={{
+                        from: bookingInfo.checkIn,
+                        to: bookingInfo.checkOut
+                      }}
+                      key={`${bookingInfo.checkIn?.getTime()}-${bookingInfo.checkOut?.getTime()}`}
+                      onSelect={(range) => {
+                        if (range?.from && !range?.to) {
+                          handleDateSelect(range.from)
+                        }
+                        if (range?.to && range.from && bookingInfo.checkIn) {
+                          setBookingInfo(prev => ({
+                            ...prev,
+                            checkOut: range.to!
+                          }))
+                        }
+                      }}
+                      disabled={isDateDisabled}
+                      numberOfMonths={1}
+                      className="rounded-lg border border-gray-200 p-4"
+                      classNames={{
+                        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                        month: "space-y-4",
+                        caption: "flex justify-center pt-1 relative items-center",
+                        caption_label: "text-lg font-semibold",
+                        nav: "space-x-1 flex items-center",
+                        nav_button: "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9",
+                        table: "w-full border-collapse space-y-1",
+                        head_row: "flex",
+                        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
+                        row: "flex w-full mt-2",
+                        cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                        day: "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 p-0 font-normal aria-selected:opacity-100",
+                        day_selected: "bg-[#2F513F] text-white hover:bg-[#2F513F] hover:text-white focus:bg-[#2F513F] focus:text-white font-bold",
+                        day_range_start: "bg-[#2F513F] text-white hover:bg-[#2F513F] hover:text-white focus:bg-[#2F513F] focus:text-white font-bold",
+                        day_range_end: "bg-[#2F513F] text-white hover:bg-[#2F513F] hover:text-white focus:bg-[#2F513F] focus:text-white font-bold",
+                        day_range_middle: "aria-selected:bg-[#2F513F]/10 aria-selected:text-[#2F513F]",
+                        day_today: "bg-accent text-accent-foreground font-semibold relative before:absolute before:top-0 before:right-0 before:w-2 before:h-2 before:bg-red-500 before:rounded-full before:border before:border-white",
+                        day_outside: "text-muted-foreground opacity-50",
+                        day_disabled: "text-muted-foreground opacity-50 cursor-not-allowed",
+                        day_hidden: "invisible",
+                      }}
+                    />
+                  </div>
+                  
+                  {/* 빠른 선택 버튼들 - 체크인 날짜 기준 */}
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <span className="text-sm text-gray-600 font-medium mr-2">빠른 선택:</span>
+                    {[1, 2, 3, 7].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => {
+                          // 체크인 날짜가 있으면 그 날짜를 기준으로, 없으면 오늘 날짜를 기준으로
+                          let baseDate
+                          if (bookingInfo.checkIn) {
+                            baseDate = new Date(bookingInfo.checkIn.getTime()) // 기존 체크인 날짜 복사
+                          } else {
+                            baseDate = new Date() // 오늘 날짜
+                            baseDate.setHours(0, 0, 0, 0) // 시간을 0으로 설정
+                          }
+                          
+                          const checkOutDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000)
+                          
+                          setBookingInfo(prev => ({
+                            ...prev,
+                            checkIn: baseDate,
+                            checkOut: checkOutDate
+                          }))
+                          setIsSelectingCheckIn(false)
+                        }}
+                        className={`px-3 py-1 text-sm border border-gray-300 rounded-full hover:bg-[#2F513F] hover:text-white hover:border-[#2F513F] transition-colors ${
+                          days === 1 ? 'bg-[#2F513F] text-white border-[#2F513F] font-semibold' : ''
+                        }`}
+                      >
+                        {days}박{days + 1}일
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {/* 날짜 초기화 버튼 */}
+                  {bookingInfo.checkIn && (
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => {
+                          setBookingInfo(prev => ({
+                            ...prev,
+                            checkIn: undefined,
+                            checkOut: undefined
+                          }))
+                          setIsSelectingCheckIn(true)
+                        }}
+                        className="px-4 py-2 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-colors"
+                      >
+                        날짜 선택 초기화
+                      </button>
+                    </div>
+                  )}
+
+                </div>
                 
+                {/* 선택된 프로그램 표시 */}
+                {currentProgram && (
+                  <div className="mt-6 p-4 bg-[#2F513F]/10 border border-[#2F513F]/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-[#2F513F]" />
+                      <span className="text-sm font-medium text-[#2F513F]">선택된 프로그램</span>
+                    </div>
+                    <h4 className="font-bold text-lg mb-1">{currentProgram.title}</h4>
+                    <p className="text-sm text-muted-foreground mb-2">{currentProgram.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">기본 가격</span>
+                      <span className="font-bold text-lg">{currentProgram.price.toLocaleString()}원</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* 기본 선택 - 스타일 수정 */}
                 <div className="mt-6">
-                  <h4 className="font-medium mb-4">기본 프로그램</h4>
+                  <h4 className="font-medium mb-4">숙박 및 추가 옵션</h4>
                   <div className="p-4 bg-[#2F513F]/5 rounded-lg">
                     {/* 총 예약인원과 1인당 요금을 같은 줄에 표시 */}
                     <div className="mb-3 pb-3 border-b border-[#2F513F]/10 flex justify-between items-center">
@@ -260,10 +546,10 @@ export default function BookingGuide() {
                     
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm">
-                        펜션 기본인원 15인
+                        {currentProgram ? `${currentProgram.title} (${calculateNights()}박)` : `펜션기본15인 (${calculateNights()}박)`}
                         {bookingInfo.addons["추가 인원"] > 0 && ` + 추가 ${bookingInfo.addons["추가 인원"]}인`}
                       </span>
-                      <span className="font-bold text-lg">{currentTotalPrice.toLocaleString()}원</span>
+                      <span className="font-bold text-lg">{(currentTotalPrice * calculateNights()).toLocaleString()}원</span>
                     </div>
                     <div className="h-2 bg-[#2F513F]/10 rounded-full mt-2">
                       <div 
@@ -274,7 +560,7 @@ export default function BookingGuide() {
                   </div>
                 </div>
 
-                {/* 추가 옵션 - 스타일 수정 */}
+                {/* 추가 옵션 - 인원 및 저녁서비스 */}
                 <div className="mt-6 space-y-6">
                   {/* 추가 인원 섹션 */}
                   <div>
@@ -300,7 +586,7 @@ export default function BookingGuide() {
                             type="number"
                             min="0"
                             value={bookingInfo.addons["추가 인원"] || 0}
-                            onChange={(e) => handleQuantityChange("추가 인원", parseInt(e.target.value) || 0)}
+                            onChange={(e) => handleQuantitySet("추가 인원", parseInt(e.target.value) || 0)}
                             className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
                           />
                           <Button
@@ -316,59 +602,132 @@ export default function BookingGuide() {
                     </div>
                   </div>
 
-                  {/* 음식 옵션 섹션 */}
+                  {/* 저녁 제공 서비스 섹션 */}
                   <div>
-                    <h4 className="font-medium mb-3">바베큐 제공 내역</h4>
+                    <h4 className="font-medium mb-3">저녁 제공 서비스</h4>
                     <div className="space-y-3">
-                      {Object.entries(bookingInfo.addons).map(([id, quantity]) => {
-                        if (id !== "추가 인원") {
-                          const addon = 
-                            id === "바베큐 세트" ? addons.bbq :
-                            id === "조식 추가" ? addons.breakfast :
-                            id === "가스렌지" ? addons.gasRange : null
+                      {/* 그릴 대여 */}
+                      <div className="p-3 md:p-4 border rounded-lg bg-background">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm md:text-base truncate">{addons.grill.id}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">
+                              {addons.grill.description}
+                            </p>
+                            <p className="text-xs text-orange-600 mt-1">최대 {addons.grill.maxQuantity}개</p>
+                          </div>
+                          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("그릴 대여", -1)}
+                            >
+                              -
+                            </Button>
+                            <input
+                              type="number"
+                              min="0"
+                              max={addons.grill.maxQuantity}
+                              value={bookingInfo.addons["그릴 대여"] || 0}
+                              onChange={(e) => handleQuantitySet("그릴 대여", parseInt(e.target.value) || 0)}
+                              className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("그릴 대여", 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
 
-                          if (addon) {
-                            return (
-                              <div key={id} className="p-3 md:p-4 border rounded-lg bg-background">
-                                <div className="flex items-center justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-medium text-sm md:text-base truncate">{id}</p>
-                                    <p className="text-xs md:text-sm text-muted-foreground truncate">
-                                      {addon.description}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-1 md:gap-2 shrink-0">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 w-7 md:h-8 md:w-8"
-                                      onClick={() => handleQuantityChange(id, -1)}
-                                    >
-                                      -
-                                    </Button>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      value={quantity || 0}
-                                      onChange={(e) => handleQuantityChange(id, parseInt(e.target.value) || 0)}
-                                      className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
-                                    />
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="h-7 w-7 md:h-8 md:w-8"
-                                      onClick={() => handleQuantityChange(id, 1)}
-                                    >
-                                      +
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                        }
-                        return null;
-                      })}
+                      {/* 고기만 셋트 (5인 기준) */}
+                      <div className="p-3 md:p-4 border rounded-lg bg-background">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm md:text-base truncate">{addons.meatOnly.id}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">
+                              {addons.meatOnly.description}
+                            </p>
+                            {bookingInfo.addons["고기만 셋트 (5인 기준)"] > 0 && (
+                              <p className="text-xs text-blue-600 mt-1 font-medium">
+                                총 {bookingInfo.addons["고기만 셋트 (5인 기준)"] * 5}인분
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("고기만 셋트 (5인 기준)", -1)}
+                            >
+                              -
+                            </Button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={bookingInfo.addons["고기만 셋트 (5인 기준)"] || 0}
+                              onChange={(e) => handleQuantitySet("고기만 셋트 (5인 기준)", parseInt(e.target.value) || 0)}
+                              className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("고기만 셋트 (5인 기준)", 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 고기+식사 셋트 (5인 기준) */}
+                      <div className="p-3 md:p-4 border rounded-lg bg-background">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm md:text-base truncate">{addons.meatMeal.id}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">
+                              {addons.meatMeal.description}
+                            </p>
+                            {bookingInfo.addons["고기+식사 셋트 (5인 기준)"] > 0 && (
+                              <p className="text-xs text-blue-600 mt-1 font-medium">
+                                총 {bookingInfo.addons["고기+식사 셋트 (5인 기준)"] * 5}인분
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("고기+식사 셋트 (5인 기준)", -1)}
+                            >
+                              -
+                            </Button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={bookingInfo.addons["고기+식사 셋트 (5인 기준)"] || 0}
+                              onChange={(e) => handleQuantitySet("고기+식사 셋트 (5인 기준)", parseInt(e.target.value) || 0)}
+                              className="w-10 md:w-12 h-7 md:h-8 text-center text-sm border rounded-md"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 md:h-8 md:w-8"
+                              onClick={() => handleQuantityChange("고기+식사 셋트 (5인 기준)", 1)}
+                            >
+                              +
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -394,7 +753,7 @@ export default function BookingGuide() {
                   {/* 기본 요금 */}
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="text-sm text-muted-foreground">
-                      기본 패키지 (15인)
+                      펜션기본15인
                     </p>
                     <p className="text-lg font-bold mt-1">
                       700,000원
@@ -405,9 +764,10 @@ export default function BookingGuide() {
                   {Object.entries(bookingInfo.addons).map(([id, quantity]) => {
                     if (quantity > 0) {
                       const addon = 
-                        id === "바베큐 세트" ? addons.bbq :
-                        id === "조식 추가" ? addons.breakfast :
-                        id === "가스렌지" ? addons.gasRange : null
+                        id === "추가 인원" ? addons.personnel :
+                        id === "그릴 대여" ? addons.grill :
+                        id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+                        id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
 
                       if (addon) {
                         return (
