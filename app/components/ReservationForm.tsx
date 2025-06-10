@@ -50,7 +50,7 @@ export default function ReservationForm() {
   })
 
   const [basePrice, setBasePrice] = useState(150000) // 기본 객실 가격
-  const [grillPrice, setGrillPrice] = useState(50000) // BBQ 그릴 대여 가격
+  const [grillPrice, setGrillPrice] = useState(30000) // BBQ 그릴 대여 가격
 
   const handleGuestChange = (adults: number, children: number) => {
     setReservation(prev => ({

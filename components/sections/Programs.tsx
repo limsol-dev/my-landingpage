@@ -20,7 +20,11 @@ import { useReservationStore } from '@/store/useReservationStore'
 import { Program } from '@/types/program'
 import { programs } from '@/data/programs'
 
-export default function Programs() {
+interface ProgramsProps {
+  onBookingClick: () => void
+}
+
+export default function Programs({ onBookingClick }: ProgramsProps) {
   const setProgramId = useReservationStore((state) => state.setProgramId)
   
   // 초기 선택 프로그램 제거
@@ -47,12 +51,7 @@ export default function Programs() {
     if (selectedProgram) {
       setProgramId(selectedProgram.id)
       setSelectedProgramState(null) // 모달 닫기
-      
-      // BookingGuide 섹션으로 스크롤
-      const bookingSection = document.getElementById('booking-section')
-      if (bookingSection) {
-        bookingSection.scrollIntoView({ behavior: 'smooth' })
-      }
+      onBookingClick() // 예약 모달 열기
     }
   }
 

@@ -7,7 +7,11 @@ import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
-export default function Hero() {
+interface HeroProps {
+  onBookingClick: () => void
+}
+
+export default function Hero({ onBookingClick }: HeroProps) {
   const [isVisible] = useState(true)
 
   // 실시간 예약 현황
@@ -57,14 +61,24 @@ export default function Hero() {
           </div>
 
           {/* CTA 버튼 */}
-          <Button 
-            size="lg" 
-            className="bg-[#2F513F] hover:bg-[#2F513F]/90 text-lg px-8"
-            onClick={handleScrollToPrograms}
-          >
-            프로그램 둘러보기
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              size="lg" 
+              className="bg-[#2F513F] hover:bg-[#2F513F]/90 text-lg px-8"
+              onClick={onBookingClick}
+            >
+              지금 예약하기
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/30 text-lg px-8"
+              onClick={handleScrollToPrograms}
+            >
+              프로그램 둘러보기
+            </Button>
+          </div>
 
           {/* 실시간 예약 현황 */}
           <Card className="w-fit mx-auto bg-black/30 backdrop-blur border-white/20">

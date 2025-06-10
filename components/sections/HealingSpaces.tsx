@@ -15,7 +15,11 @@ type Room = {
   icon: React.ReactNode
 }
 
-export default function HealingSpaces() {
+interface HealingSpacesProps {
+  onBookingClick: () => void
+}
+
+export default function HealingSpaces({ onBookingClick }: HealingSpacesProps) {
   const rooms: Room[] = [
     {
       id: "room1",
@@ -123,7 +127,7 @@ export default function HealingSpaces() {
               프라이빗 공간
             </Badge>
           </div>
-          <Button size="lg" variant="outline" className="mt-6">
+          <Button size="lg" variant="outline" className="mt-6" onClick={onBookingClick}>
             예약하기
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>

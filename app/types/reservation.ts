@@ -19,12 +19,12 @@ export interface ReservationInfo {
 
 export const PRICE_CONFIG = {
   BASE_CAPACITY: 2,
-  EXTRA_PERSON_FEE: 20000,
+  EXTRA_PERSON_FEE: 10000,
   BBQ: {
     MAX_GRILLS: 3,
-    GRILL_RENTAL: 50000,
-    MEAT_SET: 25000,
-    FULL_SET: 35000
+    GRILL_RENTAL: 30000,
+    MEAT_SET: 10000,
+    FULL_SET: 14000
   },
   BREAKFAST: 15000
 }
@@ -65,11 +65,11 @@ export function calculateTotalPrice(
 
   // BBQ 요금
   total += reservation.bbq.grillCount * grillPrice
-  total += reservation.bbq.meatSetCount * PRICE_CONFIG.BBQ.MEAT_SET
-  total += reservation.bbq.fullSetCount * PRICE_CONFIG.BBQ.FULL_SET
+  total += reservation.bbq.meatSetCount * 50000 // 고기만 세트 5인 기준
+  total += reservation.bbq.fullSetCount * 70000 // 고기+식사 세트 5인 기준
 
-  // 조식 요금
-  total += reservation.meal.breakfastCount * PRICE_CONFIG.BREAKFAST
+  // 조식 요금 (5인 세트 기준)
+  total += reservation.meal.breakfastCount * 50000
 
   return total
 } 

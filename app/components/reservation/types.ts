@@ -24,9 +24,9 @@ export const PRICE_CONFIG = {
   BASE_CAPACITY: 15,  // 기본 인원
   EXTRA_PERSON_FEE: 10000,  // 추가 인원 1인당 요금
   BBQ: {
-    GRILL_RENTAL: 50000,  // 그릴 대여 가격 (8인 1세트)
-    MEAT_SET: 10000,  // 1인당 고기만 세트
-    FULL_SET: 15000,  // 1인당 저녁 식사 제공 (고기+밥+채소)
+    GRILL_RENTAL: 30000,  // 그릴 대여 가격 1개당 3만원
+    MEAT_SET: 10000,  // 1인당 고기만 세트 (5인 기준 5만원)
+    FULL_SET: 14000,  // 1인당 저녁 식사 제공 (5인 기준 7만원)
     MAX_GRILLS: 6,  // 최대 그릴 수량
     RECOMMENDED_CAPACITY: 8  // 1세트당 추천 인원
   },
