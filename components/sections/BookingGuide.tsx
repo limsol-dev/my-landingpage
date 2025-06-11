@@ -2,8 +2,11 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Accordion,
   AccordionContent,
@@ -18,7 +21,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Info,
-  CreditCard
+  CreditCard,
+  User,
+  Phone,
+  Minus,
+  Plus
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useBookingStore } from '@/store/useBookingStore'
@@ -129,17 +136,17 @@ export default function BookingGuide() {
     {
       id: "cancellation",
       question: "예약 취소는 언제까지 가능한가요?",
-      answer: "체크인 3일 전까지 100% 환불이 가능합니다. 이후 취소 시 수수료가 발생할 수 있습니다."
+      answer: "체크인 14일 전까지 100% 환불이 가능합니다!"
     },
     {
       id: "program",
       question: "프로그램은 어떻게 신청하나요?",
-      answer: "예약 시 원하시는 프로그램을 선택하실 수 있으며, 체크인 후 프론트에서도 신청 가능합니다."
+      answer: "예약 시 원하시는 프로그램을 선택하실 수 있습니다!"
     },
     {
       id: "parking",
       question: "주차는 가능한가요?",
-      answer: "네, 무료 주차가 가능합니다. 전기차 충전소도 구비되어 있습니다."
+      answer: "네, 무료 주차가 가능합니다. 주차는 100m위에 파란 창고 앞쪽에 넗은 공터에도 주차가능합니다."
     }
   ]
 
@@ -282,8 +289,26 @@ export default function BookingGuide() {
     return false
   }
 
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [bookerInfo, setBookerInfo] = useState({
+    name: '',
+    contact: ''
+  })
+  const [showAccountInfo, setShowAccountInfo] = useState(false)
+
   const handleBooking = () => {
+    setShowBookingModal(true)
+  }
+
+  const handleFinalBooking = () => {
+    if (!bookerInfo.name || !bookerInfo.contact) {
+      alert("예약자 정보를 모두 입력해주세요.")
+      return
+    }
+    
     alert("예약이 성공적으로 완료되었습니다!")
+    setShowBookingModal(false)
+    setBookerInfo({ name: '', contact: '' })
   }
 
   // 현재 총 인원 계산 (기본 15인 + 추가 인원)
@@ -326,6 +351,82 @@ export default function BookingGuide() {
               원하시는 날짜와 프로그램을 선택하여 예약해주세요
             </p>
           </div>
+
+          {/* 선택된 프로그램 표시 */}
+          {(selectedProgram || currentProgram) && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <Card className="border-[#2F513F] bg-gradient-to-r from-[#2F513F]/5 to-[#3d6b4f]/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-3 h-3 bg-[#2F513F] rounded-full"></div>
+                    <h3 className="text-lg font-bold text-[#2F513F]">선택된 프로그램</h3>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4 items-center">
+                    <div className="md:col-span-2">
+                      <h4 className="text-xl font-bold mb-2">
+                        {selectedProgram?.title || currentProgram?.title}
+                      </h4>
+                      <p className="text-muted-foreground mb-3">
+                        {selectedProgram?.description || currentProgram?.description}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {(selectedProgram?.tags || currentProgram?.tags || []).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="bg-[#2F513F]/10 text-[#2F513F]">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-[#2F513F] mb-1">
+                        {(selectedProgram?.price || currentProgram?.price || 700000).toLocaleString()}원
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        기본 15인 기준
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        소요시간: {selectedProgram?.duration || currentProgram?.duration || "1박 2일"}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* 프로그램 미선택 시 안내 */}
+          {!selectedProgram && !currentProgram && (
+            <div className="max-w-4xl mx-auto mb-8">
+              <Card className="border-orange-200 bg-orange-50">
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Info className="h-8 w-8 text-orange-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-orange-800 mb-2">
+                      프로그램을 선택해주세요
+                    </h3>
+                    <p className="text-orange-600 mb-4">
+                      먼저 상단의 프로그램 소개에서 원하시는 프로그램을 선택해주세요.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="border-orange-300 text-orange-700 hover:bg-orange-100"
+                      onClick={() => {
+                        const programsSection = document.getElementById('programs-section')
+                        if (programsSection) {
+                          programsSection.scrollIntoView({ behavior: 'smooth' })
+                        }
+                      }}
+                    >
+                      프로그램 선택하러 가기
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* 달력 */}
@@ -406,7 +507,7 @@ export default function BookingGuide() {
                         </span>
                       </div>
                       <p className="text-sm text-green-600">
-                        날짜를 다시 선택하려면 달력을 클릭해주세요
+                        날짜를 다시 선택하려면 아래 날짜 선택 초기화 클릭
                       </p>
                     </div>
                   )}
@@ -802,7 +903,7 @@ export default function BookingGuide() {
                     className="w-full bg-[#2F513F] hover:bg-[#2F513F]/90"
                     onClick={handleBooking}
                   >
-                    예약하기
+                    예약 확정하기
                   </Button>
                 </div>
               </CardContent>
@@ -918,6 +1019,243 @@ export default function BookingGuide() {
           </div>
         </div>
       </section>
+
+      {/* 예약 확정 Dialog */}
+      <Dialog open={showBookingModal} onOpenChange={setShowBookingModal}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center text-[#2F513F]">
+              예약 정보 확인
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              예약 정보를 확인하고 예약자 정보를 입력해주세요
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            {/* 예약 정보 요약 */}
+            <div className="bg-muted/30 p-4 rounded-lg">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                예약 정보 요약
+              </h3>
+              <div className="space-y-3 text-sm">
+                {/* 기본 정보 */}
+                <div className="space-y-2 pb-3 border-b">
+                  <div className="flex justify-between">
+                    <span>프로그램:</span>
+                    <span className="font-medium">
+                      {currentProgram?.title || selectedProgram?.title || "기본 프로그램"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>체크인:</span>
+                    <span className="font-medium">
+                      {bookingInfo.checkIn?.toLocaleDateString('ko-KR') || "미선택"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>체크아웃:</span>
+                    <span className="font-medium">
+                      {bookingInfo.checkOut?.toLocaleDateString('ko-KR') || "미선택"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>총 예약인원:</span>
+                    <span className="font-medium text-[#2F513F]">{totalParticipants}명</span>
+                  </div>
+                </div>
+
+                {/* 숙박 비용 */}
+                <div className="bg-blue-50 p-3 rounded">
+                  <h4 className="font-semibold text-blue-800 mb-2">📍 숙박 비용</h4>
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span>펜션기본15인 ({calculateNights()}박):</span>
+                      <span className="font-medium">{((currentProgram?.price || selectedProgram?.price || 700000) * calculateNights()).toLocaleString()}원</span>
+                    </div>
+                    {bookingInfo.addons["추가 인원"] > 0 && (
+                      <div className="flex justify-between">
+                        <span>추가 인원 {bookingInfo.addons["추가 인원"]}명 ({calculateNights()}박):</span>
+                        <span className="font-medium">{(bookingInfo.addons["추가 인원"] * addons.personnel.price * calculateNights()).toLocaleString()}원</span>
+                      </div>
+                    )}
+                    <div className="border-t pt-2 mt-2">
+                      <div className="flex justify-between font-semibold text-blue-800">
+                        <span>숙박 합계:</span>
+                        <span>{(((currentProgram?.price || selectedProgram?.price || 700000) + (bookingInfo.addons["추가 인원"] || 0) * addons.personnel.price) * calculateNights()).toLocaleString()}원</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 추가 옵션 비용 */}
+                {Object.entries(bookingInfo.addons).some(([id, quantity]) => quantity > 0 && id !== "추가 인원") && (
+                  <div className="bg-orange-50 p-3 rounded">
+                    <h4 className="font-semibold text-orange-800 mb-2">🔥 추가 옵션</h4>
+                    <div className="space-y-1">
+                      {Object.entries(bookingInfo.addons).map(([id, quantity]) => {
+                        if (quantity > 0 && id !== "추가 인원") {
+                          const addon = 
+                            id === "그릴 대여" ? addons.grill :
+                            id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+                            id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
+                          
+                          if (addon) {
+                            return (
+                              <div key={id} className="flex justify-between">
+                                <span>{id} {quantity}개:</span>
+                                <span className="font-medium">{(addon.price * quantity).toLocaleString()}원</span>
+                              </div>
+                            )
+                          }
+                        }
+                        return null
+                      })}
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between font-semibold text-orange-800">
+                          <span>옵션 합계:</span>
+                          <span>
+                            {Object.entries(bookingInfo.addons).reduce((total, [id, quantity]) => {
+                              if (id !== "추가 인원" && quantity > 0) {
+                                const addon = 
+                                  id === "그릴 대여" ? addons.grill :
+                                  id === "고기만 셋트 (5인 기준)" ? addons.meatOnly :
+                                  id === "고기+식사 셋트 (5인 기준)" ? addons.meatMeal : null
+                                return total + (addon ? addon.price * quantity : 0)
+                              }
+                              return total
+                            }, 0).toLocaleString()}원
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* 최종 금액 */}
+                <div className="border-t pt-3 mt-4 bg-green-50 p-3 rounded">
+                  <div className="flex justify-between text-xl font-bold text-[#2F513F] mb-2">
+                    <span>총 결제 금액:</span>
+                    <span>{totalPriceWithNights.toLocaleString()}원</span>
+                  </div>
+                  <div className="flex justify-between text-base font-semibold text-green-700">
+                    <span>1인당 금액:</span>
+                    <span>{perPersonPrice.toLocaleString()}원</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1 text-center">
+                    * {calculateNights()}박 {calculateNights() + 1}일 기준 (총 {totalParticipants}명)
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 예약자 정보 입력 */}
+            <div className="space-y-4">
+              <h3 className="font-semibold flex items-center gap-2">
+                <User className="h-5 w-5 text-[#2F513F]" />
+                예약자 정보
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="booker-name">예약자 이름 *</Label>
+                  <Input
+                    id="booker-name"
+                    placeholder="예약자 이름을 입력해주세요"
+                    value={bookerInfo.name}
+                    onChange={(e) => setBookerInfo({...bookerInfo, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="booker-contact">연락처 *</Label>
+                  <Input
+                    id="booker-contact"
+                    placeholder="연락처를 입력해주세요 (010-0000-0000)"
+                    value={bookerInfo.contact}
+                    onChange={(e) => setBookerInfo({...bookerInfo, contact: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 결제 안내 */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="h-5 w-5 text-blue-600" />
+                <span className="font-semibold text-blue-800">결제 안내</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                예약 확정 후 계좌 정보를 확인하시고 입금해주세요.<br/>
+                입금 확인 후 예약이 최종 완료됩니다.
+              </p>
+            </div>
+
+            {/* 버튼들 */}
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowAccountInfo(true)}
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                입금계좌보기
+              </Button>
+              <Button
+                className="flex-1 bg-[#2F513F] hover:bg-[#2F513F]/90"
+                onClick={handleFinalBooking}
+              >
+                예약 완료
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 입금계좌 정보 Dialog */}
+      <Dialog open={showAccountInfo} onOpenChange={setShowAccountInfo}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-center text-[#2F513F]">
+              입금계좌 정보
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/30 p-4 rounded-lg text-center">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">입금 은행</p>
+                <p className="text-lg font-bold">농협</p>
+                
+                <p className="text-sm text-muted-foreground mt-4">계좌번호</p>
+                <p className="text-xl font-bold">351-0322-8946-53</p>
+                
+                <p className="text-sm text-muted-foreground mt-4">예금주</p>
+                <p className="text-lg font-bold">임솔</p>
+                
+                <div className="mt-6 p-3 bg-yellow-50 rounded border">
+                  <p className="text-sm font-medium text-yellow-800">입금 금액</p>
+                  <p className="text-2xl font-bold text-yellow-900">
+                    {totalPriceWithNights.toLocaleString()}원
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p>• 입금자명은 예약자명과 동일하게 해주세요</p>
+              <p>• 예약 확정하기 눌러주시면 예약 확인 문자가 발송됩니다</p>
+              <p>• 문의: 010-8531-9531</p>
+            </div>
+            
+            <Button 
+              className="w-full bg-[#2F513F] hover:bg-[#2F513F]/90"
+              onClick={() => setShowAccountInfo(false)}
+            >
+              확인
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog 컴포넌트 추가 */}
       <Dialog>

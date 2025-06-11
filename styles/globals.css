@@ -20,6 +20,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 모바일 반응형 개선 */
+@layer utilities {
+  /* 매우 작은 화면용 */
+  @media (max-width: 375px) {
+    .container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    .text-responsive-h1 {
+      font-size: 1.5rem;
+      line-height: 1.3;
+    }
+    
+    .text-responsive-h2 {
+      font-size: 1.25rem;
+      line-height: 1.4;
+    }
+    
+    .text-responsive-p {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+  }
+  
+  /* 작은 모바일 화면용 */
+  @media (max-width: 480px) {
+    .dialog-mobile {
+      margin: 0.5rem;
+      max-width: calc(100vw - 1rem);
+      width: calc(100vw - 1rem);
+    }
+    
+    .grid-mobile-1 {
+      grid-template-columns: 1fr;
+    }
+    
+    .gap-mobile-small {
+      gap: 0.5rem;
+    }
+    
+    .px-mobile {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    
+    .py-mobile {
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
