@@ -51,6 +51,7 @@ export default function ReservationForm({ onBookingClick }: ReservationFormProps
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
+  const [customerEmail, setCustomerEmail] = useState('')
   const [reservation, setReservation] = useState<ReservationInfo>({
     checkIn: undefined,
     checkOut: undefined,
@@ -136,7 +137,7 @@ export default function ReservationForm({ onBookingClick }: ReservationFormProps
   const errors = validateReservation(reservation)
   const totalPrice = calculateTotalPrice(reservation, basePrice, grillPrice)
 
-  const handleReservationSubmit = () => {
+  const handleReservationSubmit = async () => {
     // 이름과 연락처 검증
     if (!customerName.trim()) {
       alert('❌ 예약자 이름을 입력해주세요!')
@@ -155,23 +156,91 @@ export default function ReservationForm({ onBookingClick }: ReservationFormProps
       return
     }
     
-    // 예약 완료 처리
-    setShowBookingModal(false)
-    
-    // 예약 완료 메시지
-    alert(`✅ 예약이 완료되었습니다!
+    try {
+      // 예약 데이터 준비
+      const reservationData = {
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
+        customerEmail: customerEmail.trim(),
+        programType: selectedProgram?.name || '일반 예약',
+        checkIn: reservation.checkIn?.toISOString().split('T')[0],
+        checkOut: reservation.checkOut?.toISOString().split('T')[0],
+        totalPrice: totalPrice,
+        totalGuests: reservation.totalGuests,
+        adults: reservation.adults,
+        children: reservation.children,
+        bbq: reservation.bbq,
+        meal: reservation.meal,
+        transport: reservation.transport,
+        experience: reservation.experience,
+        extra: reservation.extra,
+        specialRequests: `프로그램: ${selectedProgram?.name || '일반 예약'}\n추가 옵션: ${getReservationOptionsText()}`,
+        referrer: '웹사이트'
+      }
+      
+      // API 호출
+      const response = await fetch('/api/reservations/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData)
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        // 예약 완료 처리
+        setShowBookingModal(false)
+        
+        // 예약 완료 메시지
+        alert(`✅ 예약이 완료되었습니다!
 
+예약번호: ${result.reservation.id}
 예약자: ${customerName}
 연락처: ${customerPhone}
 체크인: ${reservation.checkIn?.toLocaleDateString('ko-KR')}
 체크아웃: ${reservation.checkOut?.toLocaleDateString('ko-KR')}
 총 금액: ${totalPrice.toLocaleString()}원
 
-확인 후 연락드리겠습니다.`)
-    
-    // 폼 초기화
-    setCustomerName('')
-    setCustomerPhone('')
+관리자 확인 후 연락드리겠습니다.`)
+        
+        // 폼 초기화
+        setCustomerName('')
+        setCustomerPhone('')
+        setCustomerEmail('')
+        setReservation({
+          checkIn: undefined,
+          checkOut: undefined,
+          adults: 2,
+          children: 0,
+          totalGuests: 2,
+          bbq: { grillCount: 0, meatSetCount: 0, fullSetCount: 0 },
+          meal: { breakfastCount: 0 },
+          transport: { needsBus: false },
+          experience: { farmExperienceCount: 0 },
+          extra: { laundryCount: 0 }
+        })
+      } else {
+        alert('❌ 예약 처리 중 오류가 발생했습니다: ' + result.error)
+      }
+    } catch (error) {
+      console.error('예약 제출 오류:', error)
+      alert('❌ 예약 처리 중 오류가 발생했습니다. 다시 시도해주세요.')
+    }
+  }
+  
+  // 예약 옵션을 텍스트로 변환하는 함수
+  const getReservationOptionsText = () => {
+    const options = []
+    if (reservation.bbq.grillCount > 0) options.push(`BBQ 그릴 ${reservation.bbq.grillCount}개`)
+    if (reservation.bbq.meatSetCount > 0) options.push(`고기세트 ${reservation.bbq.meatSetCount}인분`)
+    if (reservation.bbq.fullSetCount > 0) options.push(`풀세트 ${reservation.bbq.fullSetCount}인분`)
+    if (reservation.meal.breakfastCount > 0) options.push(`조식 ${reservation.meal.breakfastCount}인분`)
+    if (reservation.transport.needsBus) options.push('버스 렌트')
+    if (reservation.experience.farmExperienceCount > 0) options.push(`목공체험 ${reservation.experience.farmExperienceCount}명`)
+    if (reservation.extra.laundryCount > 0) options.push(`버스대절 ${reservation.extra.laundryCount}대`)
+    return options.length > 0 ? options.join(', ') : '없음'
   }
 
   return (
@@ -908,6 +977,19 @@ export default function ReservationForm({ onBookingClick }: ReservationFormProps
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 className="col-span-3"
                 placeholder="010-0000-0000"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="email" className="text-right">
+                이메일
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className="col-span-3"
+                placeholder="example@email.com"
               />
             </div>
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">

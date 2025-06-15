@@ -181,7 +181,7 @@ export function ReservationForm() {
                       <SelectValue placeholder="BBQ 옵션 선택" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">선택 안함</SelectItem>
+                      <SelectItem value="none">선택 안함</SelectItem>
                       <SelectItem value="basic">기본 (50,000원)</SelectItem>
                       <SelectItem value="standard">스탠다드 (60,000원)</SelectItem>
                       <SelectItem value="premium">프리미엄 (80,000원)</SelectItem>

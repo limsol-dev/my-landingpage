@@ -166,7 +166,7 @@ export default function OptionsSelector() {
                   <SelectValue placeholder="BBQ 패키지를 선택해주세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">선택 안함</SelectItem>
+                  <SelectItem value="none">선택 안함</SelectItem>
                   {bbqPackages.map((pkg) => (
                     <SelectItem key={pkg.id} value={pkg.id}>
                       {pkg.label} - {pkg.price.toLocaleString()}원
