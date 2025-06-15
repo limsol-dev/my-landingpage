@@ -1,41 +1,41 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { toast, Toaster } from 'sonner'
+import { useAuth } from '../context/AuthContext'
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const { login, isAuthenticated } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [credentials, setCredentials] = useState({
     email: '',
     password: ''
   })
 
+  // 이미 로그인된 경우 대시보드로 리다이렉트
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/admin/dashboard')
+    }
+  }, [isAuthenticated, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
+      const success = await login(credentials.email, credentials.password)
+      
+      if (success) {
         toast.success('로그인 성공!')
         setTimeout(() => {
           router.push('/admin/dashboard')
-          router.refresh()
         }, 1000)
       } else {
         toast.error('이메일 또는 비밀번호가 올바르지 않습니다.')
@@ -91,6 +91,14 @@ export default function AdminLoginPage() {
               {isLoading ? '로그인 중...' : '로그인'}
             </Button>
           </form>
+          
+          <div className="mt-6 p-4 bg-gray-50 rounded-md">
+            <p className="text-sm text-gray-600 text-center mb-2">테스트 계정</p>
+            <div className="text-xs text-gray-500 space-y-1">
+              <p><strong>이메일:</strong> admin@example.com</p>
+              <p><strong>비밀번호:</strong> admin1234</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

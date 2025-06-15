@@ -18,107 +18,273 @@ import {
   Target
 } from 'lucide-react'
 
-// 예약 데이터 (예약 관리 페이지와 동일한 데이터) - 예약일과 생성일 추가
-const reservations = [
+// 예약 타입 정의 (예약 관리 페이지와 동일)
+interface Reservation {
+  id: string
+  customerName: string
+  programType: string
+  startDate: string
+  endDate: string
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  totalPrice: number
+  participants: number
+  phone: string
+  email: string
+  specialRequests?: string
+  paymentStatus: 'pending' | 'partial' | 'completed'
+}
+
+// 예약 데이터 (예약 관리 페이지와 동일한 데이터)
+const reservations: Reservation[] = [
   {
     id: 'R001',
     customerName: '김민지',
     programType: '힐링 캠프',
     startDate: '2024-04-15',
-    createdDate: '2024-04-10', // 예약 생성일
+    endDate: '2024-04-15',
     status: 'confirmed',
     totalPrice: 190000,
-    participants: 4
+    participants: 4,
+    phone: '010-1234-5678',
+    email: 'minji@example.com',
+    specialRequests: '요가매트 추가 요청',
+    paymentStatus: 'completed'
   },
   {
     id: 'R002',
     customerName: '박준호',
     programType: '디지털 디톡스 캠프',
     startDate: '2024-04-18',
-    createdDate: '2024-04-12',
+    endDate: '2024-04-20',
     status: 'confirmed',
     totalPrice: 450000,
-    participants: 2
+    participants: 2,
+    phone: '010-9876-5432',
+    email: 'junho@example.com',
+    paymentStatus: 'completed'
   },
   {
     id: 'R003',
     customerName: '이수연',
     programType: '교원 힐링 연수',
     startDate: '2024-04-22',
-    createdDate: '2024-04-15',
+    endDate: '2024-04-25',
     status: 'pending',
     totalPrice: 580000,
-    participants: 12
+    participants: 12,
+    phone: '010-5555-7777',
+    email: 'suyeon@school.edu',
+    specialRequests: '교직원 증명서 첨부 예정',
+    paymentStatus: 'pending'
   },
   {
     id: 'R004',
     customerName: '최가족',
     programType: '가족 힐링 캠프',
     startDate: '2024-04-26',
-    createdDate: '2024-04-20',
+    endDate: '2024-04-27',
     status: 'confirmed',
     totalPrice: 360000,
-    participants: 4
+    participants: 4,
+    phone: '010-3333-4444',
+    email: 'family@example.com',
+    specialRequests: '아이 2명 (7세, 10세)',
+    paymentStatus: 'partial'
   },
   {
     id: 'R005',
     customerName: '정건우',
     programType: '웰니스 디톡스',
     startDate: '2024-04-28',
-    createdDate: '2024-04-22',
+    endDate: '2024-05-02',
     status: 'confirmed',
     totalPrice: 890000,
-    participants: 1
+    participants: 1,
+    phone: '010-7777-8888',
+    email: 'gunwoo@example.com',
+    specialRequests: '개인 운동 프로그램 희망',
+    paymentStatus: 'completed'
   },
   {
     id: 'R006',
     customerName: '한소영',
     programType: '펜션기본15인',
     startDate: '2024-05-03',
-    createdDate: '2024-04-25',
+    endDate: '2024-05-04',
     status: 'confirmed',
     totalPrice: 700000,
-    participants: 15
+    participants: 15,
+    phone: '010-2222-3333',
+    email: 'soyoung@example.com',
+    specialRequests: '단체 조식 준비',
+    paymentStatus: 'partial'
   },
   {
     id: 'R007',
     customerName: '윤태현',
     programType: '명상 프로그램',
     startDate: '2024-05-05',
-    createdDate: '2024-05-01',
+    endDate: '2024-05-05',
     status: 'completed',
     totalPrice: 80000,
-    participants: 1
+    participants: 1,
+    phone: '010-6666-7777',
+    email: 'taehyun@example.com',
+    paymentStatus: 'completed'
   },
   {
     id: 'R008',
     customerName: '강은지',
     programType: '싱잉볼 테라피',
     startDate: '2024-05-07',
-    createdDate: '2024-05-03',
+    endDate: '2024-05-07',
     status: 'confirmed',
     totalPrice: 120000,
-    participants: 1
+    participants: 1,
+    phone: '010-4444-5555',
+    email: 'eunji@example.com',
+    specialRequests: '금속 알레르기 있음',
+    paymentStatus: 'completed'
   },
   {
     id: 'R009',
     customerName: '임동혁',
     programType: '자연 요가 클래스',
     startDate: '2024-05-10',
-    createdDate: '2024-05-06',
+    endDate: '2024-05-10',
     status: 'pending',
     totalPrice: 70000,
-    participants: 1
+    participants: 1,
+    phone: '010-8888-9999',
+    email: 'donghyuk@example.com',
+    paymentStatus: 'pending'
   },
   {
     id: 'R010',
     customerName: '송민아',
     programType: '주/야간 패키지',
     startDate: '2024-05-12',
-    createdDate: '2024-05-08',
+    endDate: '2024-05-12',
     status: 'cancelled',
     totalPrice: 400000,
-    participants: 6
+    participants: 6,
+    phone: '010-1111-2222',
+    email: 'mina@example.com',
+    specialRequests: '야간권 희망했으나 취소',
+    paymentStatus: 'pending'
+  },
+  // 6월 데이터 추가
+  {
+    id: 'R011',
+    customerName: '김서현',
+    programType: '웰니스 디톡스',
+    startDate: '2024-06-02',
+    endDate: '2024-06-06',
+    status: 'confirmed',
+    totalPrice: 890000,
+    participants: 2,
+    phone: '010-5678-1234',
+    email: 'seohyun@example.com',
+    specialRequests: '커플 프로그램 희망',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R012',
+    customerName: '박민수',
+    programType: '힐링 캠프',
+    startDate: '2024-06-05',
+    endDate: '2024-06-05',
+    status: 'confirmed',
+    totalPrice: 190000,
+    participants: 3,
+    phone: '010-9012-3456',
+    email: 'minsu@example.com',
+    specialRequests: '친구들과 함께',
+    paymentStatus: 'partial'
+  },
+  {
+    id: 'R013',
+    customerName: '이지영',
+    programType: '디지털 디톡스 캠프',
+    startDate: '2024-06-08',
+    endDate: '2024-06-10',
+    status: 'pending',
+    totalPrice: 450000,
+    participants: 1,
+    phone: '010-3456-7890',
+    email: 'jiyoung@example.com',
+    specialRequests: '스마트폰 보관함 요청',
+    paymentStatus: 'pending'
+  },
+  {
+    id: 'R014',
+    customerName: '최현우',
+    programType: '펜션기본15인',
+    startDate: '2024-06-12',
+    endDate: '2024-06-13',
+    status: 'confirmed',
+    totalPrice: 700000,
+    participants: 12,
+    phone: '010-7890-1234',
+    email: 'hyunwoo@example.com',
+    specialRequests: '회사 워크샵',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R015',
+    customerName: '정수민',
+    programType: '가족 힐링 캠프',
+    startDate: '2024-06-15',
+    endDate: '2024-06-16',
+    status: 'confirmed',
+    totalPrice: 360000,
+    participants: 5,
+    phone: '010-2345-6789',
+    email: 'sumin@example.com',
+    specialRequests: '3세대 가족 여행',
+    paymentStatus: 'partial'
+  },
+  {
+    id: 'R016',
+    customerName: '한지원',
+    programType: '교원 힐링 연수',
+    startDate: '2024-06-18',
+    endDate: '2024-06-21',
+    status: 'completed',
+    totalPrice: 580000,
+    participants: 8,
+    phone: '010-6789-0123',
+    email: 'jiwon@school.edu',
+    specialRequests: '교원 연수 수료증 발급',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R017',
+    customerName: '윤성호',
+    programType: '명상 프로그램',
+    startDate: '2024-06-22',
+    endDate: '2024-06-22',
+    status: 'confirmed',
+    totalPrice: 80000,
+    participants: 2,
+    phone: '010-0123-4567',
+    email: 'sungho@example.com',
+    specialRequests: '부부 명상 프로그램',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R018',
+    customerName: '강미래',
+    programType: '싱잉볼 테라피',
+    startDate: '2024-06-25',
+    endDate: '2024-06-25',
+    status: 'cancelled',
+    totalPrice: 120000,
+    participants: 1,
+    phone: '010-4567-8901',
+    email: 'mirae@example.com',
+    specialRequests: '개인 사정으로 취소',
+    paymentStatus: 'pending'
   }
 ]
 
@@ -157,21 +323,38 @@ export default function AdminDashboardPage() {
   // 확정된 예약 (confirmed + completed)
   const confirmedReservations = reservations.filter(r => r.status === 'confirmed' || r.status === 'completed')
   
-  // 1. 실시간 점유율 계산 - 오늘 확정된 예약 기준
+  // 1. 실시간 점유율 계산 - 한 달 기준 예약된 날 계산
   const calculateOccupancyRate = () => {
-    const todayConfirmedReservations = reservations.filter(r => 
-      new Date(r.startDate).toDateString() === todayString && 
-      (r.status === 'confirmed' || r.status === 'completed')
-    )
+    const currentMonth = new Date()
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
     
-    const totalCapacity = Object.values(programCapacity).reduce((sum, capacity) => sum + capacity, 0)
-    const occupiedCapacity = todayConfirmedReservations.reduce((sum, r) => sum + r.participants, 0)
+    // 이번 달 총 일수
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
     
-    return totalCapacity > 0 ? Math.round((occupiedCapacity / totalCapacity) * 100) : 0
+    // 이번 달 예약된 날들 (중복 제거)
+    const reservedDates = new Set()
+    reservations
+      .filter(r => {
+        const startDate = new Date(r.startDate)
+        return startDate.getMonth() === month && 
+               startDate.getFullYear() === year &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
+      .forEach(r => {
+        const startDate = new Date(r.startDate)
+        reservedDates.add(startDate.getDate())
+      })
+    
+    const occupiedDays = reservedDates.size
+    return Math.round((occupiedDays / daysInMonth) * 100)
   }
 
-  // 2. 당일 & 주간 매출 계산 - 확정된 예약만
+  // 2. 당일 & 주간 매출 계산 - 자동 예약 내역 확인
   const calculateDailyWeeklyRevenue = () => {
+    const today = new Date()
+    const todayString = today.toDateString()
+    
     // 당일 매출 (오늘 시작하는 확정된 예약)
     const dailyRevenue = reservations
       .filter(r => 
@@ -204,14 +387,14 @@ export default function AdminDashboardPage() {
     return Math.round(totalRevenue / confirmedReservations.length)
   }
 
-  // 4. 평균 예약 리드 타임 계산 - 확정된 예약 기준
+  // 4. 평균 예약 리드 타임 계산 - startDate 기준으로 현재 날짜와의 차이
   const calculateAverageLeadTime = () => {
     if (confirmedReservations.length === 0) return { average: 0, max: 0, min: 0 }
     
+    const currentDate = new Date()
     const leadTimes = confirmedReservations.map(r => {
-      const createdDate = new Date(r.createdDate)
       const startDate = new Date(r.startDate)
-      const diffTime = Math.abs(startDate.getTime() - createdDate.getTime())
+      const diffTime = Math.abs(startDate.getTime() - currentDate.getTime())
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) // 일 단위로 변환
     })
     
@@ -226,11 +409,49 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // 5. 이번 달 매출 계산 - 이번 달 시작하는 확정된 예약
-  const calculateThisMonthRevenue = () => {
-    return thisMonthReservations
-      .filter(r => r.status === 'confirmed' || r.status === 'completed')
+  // 5. 매달 매출 계산 및 전월 대비 퍼센트
+  const calculateMonthlyRevenue = () => {
+    const currentDate = new Date()
+    const currentMonth = currentDate.getMonth()
+    const currentYear = currentDate.getFullYear()
+    
+    // 이번 달 매출
+    const thisMonthRevenue = reservations
+      .filter(r => {
+        const startDate = new Date(r.startDate)
+        return startDate.getMonth() === currentMonth && 
+               startDate.getFullYear() === currentYear &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
       .reduce((sum, r) => sum + r.totalPrice, 0)
+    
+    // 전월 매출
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+    
+    const lastMonthRevenue = reservations
+      .filter(r => {
+        const startDate = new Date(r.startDate)
+        return startDate.getMonth() === lastMonth && 
+               startDate.getFullYear() === lastMonthYear &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
+      .reduce((sum, r) => sum + r.totalPrice, 0)
+    
+    // 전월 대비 증감률 계산
+    let changePercentage = 0
+    if (lastMonthRevenue > 0) {
+      changePercentage = Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
+    } else if (thisMonthRevenue > 0) {
+      changePercentage = 100 // 전월 매출이 0이고 이번달 매출이 있으면 100% 증가
+    }
+    
+    return {
+      thisMonth: thisMonthRevenue,
+      lastMonth: lastMonthRevenue,
+      changePercentage,
+      isIncrease: changePercentage >= 0
+    }
   }
 
   // 6. 예약 확정률 계산 - 전체 예약 대비 확정 비율
@@ -273,10 +494,10 @@ export default function AdminDashboardPage() {
       }
     }
     
+    const currentDate = new Date()
     const leadTimeCategories = confirmedReservations.reduce((acc, r) => {
-      const createdDate = new Date(r.createdDate)
       const startDate = new Date(r.startDate)
-      const diffTime = Math.abs(startDate.getTime() - createdDate.getTime())
+      const diffTime = Math.abs(startDate.getTime() - currentDate.getTime())
       const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
       if (days === 0) acc.immediate++
@@ -295,7 +516,8 @@ export default function AdminDashboardPage() {
   const { dailyRevenue, weeklyRevenue } = calculateDailyWeeklyRevenue()
   const averageProgramPrice = calculateAverageProgramPrice()
   const averageLeadTime = calculateAverageLeadTime()
-  const thisMonthRevenue = calculateThisMonthRevenue()
+  const monthlyRevenueData = calculateMonthlyRevenue()
+  const thisMonthRevenue = monthlyRevenueData.thisMonth
   const confirmationRate = calculateConfirmationRate()
   const revenueAnalysis = calculateRevenueAnalysis()
   const leadTimeAnalysis = calculateLeadTimeAnalysis()
@@ -329,7 +551,7 @@ export default function AdminDashboardPage() {
       name: '실시간 점유율',
       value: `${occupancyRate}%`,
       icon: Activity,
-      description: `오늘 ${todayReservations.filter(r => r.status === 'confirmed' || r.status === 'completed').reduce((sum, r) => sum + r.participants, 0)}명 / 총 ${Object.values(programCapacity).reduce((sum, capacity) => sum + capacity, 0)}명`,
+      description: `이번 달 예약된 날: ${Math.round((occupancyRate / 100) * new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate())}일 / 총 ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()}일`,
       trend: occupancyRate > 70 ? '+높음' : occupancyRate > 40 ? '보통' : '낮음',
       color: occupancyRate > 70 ? 'text-red-600' : occupancyRate > 40 ? 'text-yellow-600' : 'text-green-600'
     },
@@ -362,8 +584,8 @@ export default function AdminDashboardPage() {
       value: `₩${thisMonthRevenue.toLocaleString()}`,
       icon: DollarSign,
       description: `${confirmedReservations.length}건 확정`,
-      trend: `${Math.round((confirmedReservations.length / reservations.length) * 100)}% 확정률`,
-      color: 'text-green-600'
+      trend: `${monthlyRevenueData.isIncrease ? '+' : ''}${monthlyRevenueData.changePercentage}% 전월대비`,
+      color: monthlyRevenueData.isIncrease ? 'text-green-600' : 'text-red-600'
     },
     {
       name: '예약 확정률',
@@ -416,7 +638,7 @@ export default function AdminDashboardPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              오늘 {todayReservations.filter(r => r.status === 'confirmed' || r.status === 'completed').reduce((sum, r) => sum + r.participants, 0)}명 / 총 {Object.values(programCapacity).reduce((sum, capacity) => sum + capacity, 0)}명
+              이번 달 예약된 날: {Math.round((occupancyRate / 100) * new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate())}일 / 총 {new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()}일
             </p>
             <div className="flex items-center pt-1">
               <div className={`w-2 h-2 rounded-full mr-2 ${occupancyRate > 70 ? 'bg-red-500' : occupancyRate > 40 ? 'bg-yellow-500' : 'bg-green-500'}`} />
@@ -526,8 +748,18 @@ export default function AdminDashboardPage() {
                 {stat.description}
               </p>
               <div className="flex items-center pt-1">
-                <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                <span className="text-xs text-green-500">{stat.trend}</span>
+                <TrendingUp className={`h-3 w-3 mr-1 ${
+                  stat.name === '이번 달 매출' ? 
+                    (monthlyRevenueData.isIncrease ? 'text-green-500' : 'text-red-500') :
+                    'text-green-500'
+                }`} />
+                <span className={`text-xs ${
+                  stat.name === '이번 달 매출' ? 
+                    (monthlyRevenueData.isIncrease ? 'text-green-500' : 'text-red-500') :
+                    'text-green-500'
+                }`}>
+                  {stat.trend}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -602,6 +834,7 @@ export default function AdminDashboardPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {reservation.participants}명 • {reservation.startDate}
+                      {reservation.endDate !== reservation.startDate && ` ~ ${reservation.endDate}`}
                     </p>
                   </div>
                   <div className="text-right">
@@ -908,6 +1141,7 @@ export default function AdminDashboardPage() {
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {reservation.participants}명 • {reservation.startDate}
+                      {reservation.endDate !== reservation.startDate && ` ~ ${reservation.endDate}`}
                     </p>
                   </div>
                   <div className="text-right">

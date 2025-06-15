@@ -13,6 +13,7 @@ import {
   Menu,
   X
 } from 'lucide-react'
+import { AuthProvider, useAuth } from './context/AuthContext'
 
 const navigation = [
   {
@@ -37,13 +38,35 @@ const navigation = [
   }
 ]
 
-export default function AdminLayout({
+function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode
 }) {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const { isAuthenticated, isLoading, logout } = useAuth()
+
+  // 로그인 페이지는 별도 레이아웃 사용
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  // 로딩 중이거나 인증되지 않은 경우
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return null // AuthContext에서 리다이렉트 처리
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -102,11 +125,7 @@ export default function AdminLayout({
           {/* 로그아웃 버튼 */}
           <div className="border-t p-4">
             <button
-              onClick={() => {
-                // 로그아웃 처리
-                document.cookie = 'admin_session=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
-                window.location.href = '/admin/login'
-              }}
+              onClick={logout}
               className="flex w-full items-center px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-md"
             >
               <LogOut className="mr-3 h-5 w-5 text-gray-400" />
@@ -128,5 +147,17 @@ export default function AdminLayout({
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <AuthProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </AuthProvider>
   )
 } 

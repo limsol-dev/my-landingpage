@@ -46,6 +46,8 @@ interface Reservation {
   email: string
   specialRequests?: string
   paymentStatus: 'pending' | 'partial' | 'completed'
+  referrer?: string
+  confirmedDate?: string
 }
 
 // 랜딩페이지 기반 예약 샘플 데이터 10개
@@ -62,7 +64,9 @@ const reservations: Reservation[] = [
     phone: '010-1234-5678',
     email: 'minji@example.com',
     specialRequests: '요가매트 추가 요청',
-    paymentStatus: 'completed'
+    paymentStatus: 'completed',
+    referrer: '이수진',
+    confirmedDate: '2024-04-10'
   },
   {
     id: 'R002',
@@ -75,7 +79,9 @@ const reservations: Reservation[] = [
     participants: 2,
     phone: '010-9876-5432',
     email: 'junho@example.com',
-    paymentStatus: 'completed'
+    paymentStatus: 'completed',
+    referrer: '네이버 블로그',
+    confirmedDate: '2024-04-12'
   },
   {
     id: 'R003',
@@ -89,7 +95,8 @@ const reservations: Reservation[] = [
     phone: '010-5555-7777',
     email: 'suyeon@school.edu',
     specialRequests: '교직원 증명서 첨부 예정',
-    paymentStatus: 'pending'
+    paymentStatus: 'pending',
+    referrer: '교육청 공문'
   },
   {
     id: 'R004',
@@ -103,7 +110,9 @@ const reservations: Reservation[] = [
     phone: '010-3333-4444',
     email: 'family@example.com',
     specialRequests: '아이 2명 (7세, 10세)',
-    paymentStatus: 'partial'
+    paymentStatus: 'partial',
+    referrer: '김민지',
+    confirmedDate: '2024-04-20'
   },
   {
     id: 'R005',
@@ -117,7 +126,9 @@ const reservations: Reservation[] = [
     phone: '010-7777-8888',
     email: 'gunwoo@example.com',
     specialRequests: '개인 운동 프로그램 희망',
-    paymentStatus: 'completed'
+    paymentStatus: 'completed',
+    referrer: '인스타그램',
+    confirmedDate: '2024-04-22'
   },
   {
     id: 'R006',
@@ -131,7 +142,9 @@ const reservations: Reservation[] = [
     phone: '010-2222-3333',
     email: 'soyoung@example.com',
     specialRequests: '단체 조식 준비',
-    paymentStatus: 'partial'
+    paymentStatus: 'partial',
+    referrer: '회사 동료',
+    confirmedDate: '2024-04-28'
   },
   {
     id: 'R007',
@@ -144,7 +157,9 @@ const reservations: Reservation[] = [
     participants: 1,
     phone: '010-6666-7777',
     email: 'taehyun@example.com',
-    paymentStatus: 'completed'
+    paymentStatus: 'completed',
+    referrer: '유튜브',
+    confirmedDate: '2024-05-01'
   },
   {
     id: 'R008',
@@ -158,7 +173,9 @@ const reservations: Reservation[] = [
     phone: '010-4444-5555',
     email: 'eunji@example.com',
     specialRequests: '금속 알레르기 있음',
-    paymentStatus: 'completed'
+    paymentStatus: 'completed',
+    referrer: '정건우',
+    confirmedDate: '2024-05-03'
   },
   {
     id: 'R009',
@@ -186,6 +203,119 @@ const reservations: Reservation[] = [
     email: 'mina@example.com',
     specialRequests: '야간권 희망했으나 취소',
     paymentStatus: 'pending'
+  },
+  // 6월 데이터 추가
+  {
+    id: 'R011',
+    customerName: '김서현',
+    programType: '웰니스 디톡스',
+    startDate: '2024-06-02',
+    endDate: '2024-06-06',
+    status: 'confirmed',
+    totalPrice: 890000,
+    participants: 2,
+    phone: '010-5678-1234',
+    email: 'seohyun@example.com',
+    specialRequests: '커플 프로그램 희망',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R012',
+    customerName: '박민수',
+    programType: '힐링 캠프',
+    startDate: '2024-06-05',
+    endDate: '2024-06-05',
+    status: 'confirmed',
+    totalPrice: 190000,
+    participants: 3,
+    phone: '010-9012-3456',
+    email: 'minsu@example.com',
+    specialRequests: '친구들과 함께',
+    paymentStatus: 'partial'
+  },
+  {
+    id: 'R013',
+    customerName: '이지영',
+    programType: '디지털 디톡스 캠프',
+    startDate: '2024-06-08',
+    endDate: '2024-06-10',
+    status: 'pending',
+    totalPrice: 450000,
+    participants: 1,
+    phone: '010-3456-7890',
+    email: 'jiyoung@example.com',
+    specialRequests: '스마트폰 보관함 요청',
+    paymentStatus: 'pending'
+  },
+  {
+    id: 'R014',
+    customerName: '최현우',
+    programType: '펜션기본15인',
+    startDate: '2024-06-12',
+    endDate: '2024-06-13',
+    status: 'confirmed',
+    totalPrice: 700000,
+    participants: 12,
+    phone: '010-7890-1234',
+    email: 'hyunwoo@example.com',
+    specialRequests: '회사 워크샵',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R015',
+    customerName: '정수민',
+    programType: '가족 힐링 캠프',
+    startDate: '2024-06-15',
+    endDate: '2024-06-16',
+    status: 'confirmed',
+    totalPrice: 360000,
+    participants: 5,
+    phone: '010-2345-6789',
+    email: 'sumin@example.com',
+    specialRequests: '3세대 가족 여행',
+    paymentStatus: 'partial'
+  },
+  {
+    id: 'R016',
+    customerName: '한지원',
+    programType: '교원 힐링 연수',
+    startDate: '2024-06-18',
+    endDate: '2024-06-21',
+    status: 'completed',
+    totalPrice: 580000,
+    participants: 8,
+    phone: '010-6789-0123',
+    email: 'jiwon@school.edu',
+    specialRequests: '교원 연수 수료증 발급',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R017',
+    customerName: '윤성호',
+    programType: '명상 프로그램',
+    startDate: '2024-06-22',
+    endDate: '2024-06-22',
+    status: 'confirmed',
+    totalPrice: 80000,
+    participants: 2,
+    phone: '010-0123-4567',
+    email: 'sungho@example.com',
+    specialRequests: '부부 명상 프로그램',
+    paymentStatus: 'completed'
+  },
+  {
+    id: 'R018',
+    customerName: '강미래',
+    programType: '싱잉볼 테라피',
+    startDate: '2024-06-25',
+    endDate: '2024-06-25',
+    status: 'cancelled',
+    totalPrice: 120000,
+    participants: 1,
+    phone: '010-4567-8901',
+    email: 'mirae@example.com',
+    specialRequests: '개인 사정으로 취소',
+    paymentStatus: 'pending'
   }
 ]
 
@@ -205,24 +335,118 @@ export default function ReservationsPage() {
     return matchesSearch && matchesStatus && matchesDate
   })
 
-  // 통계 계산
-  const todayReservations = reservations.filter(r => 
-    new Date(r.startDate).toDateString() === new Date().toDateString()
-  ).length
-
-  const thisMonthReservations = reservations.filter(r => {
-    const reservationDate = new Date(r.startDate)
+  // 통계 계산 - 선택된 날짜에 따라 동적 계산
+  const getStatistics = () => {
     const now = new Date()
-    return reservationDate.getMonth() === now.getMonth() && 
-           reservationDate.getFullYear() === now.getFullYear()
-  }).length
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
+    
+    // 지난달, 이번달, 다음달 매출 계산
+    const lastMonthRevenue = reservations
+      .filter(r => {
+        const reservationDate = new Date(r.startDate)
+        return reservationDate.getMonth() === (currentMonth - 1 + 12) % 12 && 
+               reservationDate.getFullYear() === (currentMonth === 0 ? currentYear - 1 : currentYear) &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
+      .reduce((sum, r) => sum + r.totalPrice, 0)
 
-  const cancelledReservations = reservations.filter(r => r.status === 'cancelled').length
-  const cancellationRate = Math.round((cancelledReservations / reservations.length) * 100)
+    const thisMonthRevenue = reservations
+      .filter(r => {
+        const reservationDate = new Date(r.startDate)
+        return reservationDate.getMonth() === currentMonth && 
+               reservationDate.getFullYear() === currentYear &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
+      .reduce((sum, r) => sum + r.totalPrice, 0)
 
-  const totalRevenue = reservations
-    .filter(r => r.status === 'confirmed' || r.status === 'completed')
-    .reduce((sum, r) => sum + r.totalPrice, 0)
+    const nextMonthRevenue = reservations
+      .filter(r => {
+        const reservationDate = new Date(r.startDate)
+        return reservationDate.getMonth() === (currentMonth + 1) % 12 && 
+               reservationDate.getFullYear() === (currentMonth === 11 ? currentYear + 1 : currentYear) &&
+               (r.status === 'confirmed' || r.status === 'completed')
+      })
+      .reduce((sum, r) => sum + r.totalPrice, 0)
+
+    // 평균 예약 금액 계산
+    const confirmedReservations = reservations.filter(r => r.status === 'confirmed' || r.status === 'completed')
+    const averageReservationAmount = confirmedReservations.length > 0 ? 
+      Math.round(confirmedReservations.reduce((sum, r) => sum + r.totalPrice, 0) / confirmedReservations.length) : 0
+
+    // 인기 프로그램 계산
+    const programCounts = reservations
+      .filter(r => r.status === 'confirmed' || r.status === 'completed')
+      .reduce((acc, r) => {
+        acc[r.programType] = (acc[r.programType] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    
+    const popularProgram = Object.entries(programCounts)
+      .sort(([,a], [,b]) => b - a)[0]?.[0] || '데이터 없음'
+
+    if (selectedDate) {
+      // 선택된 날짜의 통계
+      const selectedDateReservations = reservations.filter(r => 
+        new Date(r.startDate).toDateString() === selectedDate.toDateString()
+      )
+      
+      const selectedDateRevenue = selectedDateReservations
+        .filter(r => r.status === 'confirmed' || r.status === 'completed')
+        .reduce((sum, r) => sum + r.totalPrice, 0)
+      
+      return {
+        todayReservations: selectedDateReservations.length,
+        thisMonthReservations: selectedDateReservations.length,
+        totalRevenue: selectedDateRevenue,
+        totalReservations: selectedDateReservations.length,
+        cancelledReservations: selectedDateReservations.filter(r => r.status === 'cancelled').length,
+        isDateSelected: true,
+        selectedDateString: format(selectedDate, 'MM월 dd일', { locale: ko }),
+        lastMonthRevenue,
+        thisMonthRevenue,
+        nextMonthRevenue,
+        averageReservationAmount,
+        popularProgram
+      }
+    } else {
+      // 전체 통계
+      const todayReservations = reservations.filter(r => 
+        new Date(r.startDate).toDateString() === new Date().toDateString()
+      ).length
+
+      const thisMonthReservations = reservations.filter(r => {
+        const reservationDate = new Date(r.startDate)
+        return reservationDate.getMonth() === currentMonth && 
+               reservationDate.getFullYear() === currentYear
+      }).length
+
+      const totalRevenue = reservations
+        .filter(r => r.status === 'confirmed' || r.status === 'completed')
+        .reduce((sum, r) => sum + r.totalPrice, 0)
+
+      const cancelledReservations = reservations.filter(r => r.status === 'cancelled').length
+
+      return {
+        todayReservations,
+        thisMonthReservations,
+        totalRevenue,
+        totalReservations: reservations.length,
+        cancelledReservations,
+        isDateSelected: false,
+        selectedDateString: '',
+        lastMonthRevenue,
+        thisMonthRevenue,
+        nextMonthRevenue,
+        averageReservationAmount,
+        popularProgram
+      }
+    }
+  }
+
+  const statistics = getStatistics()
+  const cancellationRate = statistics.totalReservations > 0 ? 
+    Math.round((statistics.cancelledReservations / statistics.totalReservations) * 100) : 0
 
   // 상태별 색상 및 텍스트
   const getStatusInfo = (status: string) => {
@@ -275,14 +499,27 @@ export default function ReservationsPage() {
               className="rounded-md border"
             />
             {selectedDate && (
-              <div className="mt-2 text-sm text-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setSelectedDate(undefined)}
-                >
-                  날짜 필터 해제
-                </Button>
+              <div className="mt-4 space-y-2">
+                <div className="text-sm font-medium text-center">
+                  {format(selectedDate, 'yyyy년 MM월 dd일', { locale: ko })}
+                </div>
+                <div className="text-xs text-center text-muted-foreground">
+                  해당 날짜 예약: {filteredReservations.length}건
+                </div>
+                <div className="text-center">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setSelectedDate(undefined)}
+                  >
+                    날짜 필터 해제
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!selectedDate && (
+              <div className="mt-4 text-xs text-center text-muted-foreground">
+                날짜를 선택하여 해당 날짜의 예약을 조회하세요
               </div>
             )}
           </CardContent>
@@ -335,25 +572,27 @@ export default function ReservationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>예약 통계</CardTitle>
+            <CardTitle>
+              {statistics.isDateSelected ? `${statistics.selectedDateString} 예약 통계` : '예약 통계'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span>오늘 예약</span>
-                <span className="font-bold">{todayReservations}건</span>
+                <span>{statistics.isDateSelected ? '선택 날짜 예약' : '오늘 예약'}</span>
+                <span className="font-bold">{statistics.todayReservations}건</span>
               </div>
               <div className="flex justify-between">
-                <span>이번 달 예약</span>
-                <span className="font-bold">{thisMonthReservations}건</span>
+                <span>{statistics.isDateSelected ? '선택 날짜 예약' : '이번 달 예약'}</span>
+                <span className="font-bold">{statistics.thisMonthReservations}건</span>
               </div>
               <div className="flex justify-between">
                 <span>취소율</span>
                 <span className="font-bold text-red-500">{cancellationRate}%</span>
               </div>
               <div className="flex justify-between">
-                <span>총 예약</span>
-                <span className="font-bold">{reservations.length}건</span>
+                <span>{statistics.isDateSelected ? '선택 날짜 총 예약' : '총 예약'}</span>
+                <span className="font-bold">{statistics.totalReservations}건</span>
               </div>
             </div>
           </CardContent>
@@ -361,26 +600,62 @@ export default function ReservationsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>매출 현황</CardTitle>
+            <CardTitle>
+              {statistics.isDateSelected ? `${statistics.selectedDateString} 매출 현황` : '매출 현황'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {!statistics.isDateSelected && (
+                <>
+                  <div className="flex justify-between">
+                    <span>지난달 매출</span>
+                    <span className="font-bold text-gray-600">
+                      {statistics.lastMonthRevenue.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>이번달 매출</span>
+                    <span className="font-bold text-blue-600">
+                      {statistics.thisMonthRevenue.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>다음달 매출</span>
+                    <span className="font-bold text-purple-600">
+                      {statistics.nextMonthRevenue.toLocaleString()}원
+                    </span>
+                  </div>
+                </>
+              )}
+              {statistics.isDateSelected && (
+                <div className="flex justify-between">
+                  <span>선택 날짜 매출</span>
+                  <span className="font-bold text-green-600">
+                    {statistics.totalRevenue.toLocaleString()}원
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span>총 매출</span>
+                <span>평균 예약 금액</span>
                 <span className="font-bold text-green-600">
-                  {totalRevenue.toLocaleString()}원
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>평균 예약금액</span>
-                <span className="font-bold">
-                  {Math.round(totalRevenue / reservations.filter(r => r.status !== 'cancelled').length).toLocaleString()}원
+                  {statistics.averageReservationAmount.toLocaleString()}원
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>인기 프로그램</span>
-                <span className="font-bold text-blue-600">웰니스 디톡스</span>
+                <span className="font-bold text-orange-600">{statistics.popularProgram}</span>
               </div>
+              {!statistics.isDateSelected && (
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-500">총 누적 매출</span>
+                    <span className="font-bold text-lg text-green-700">
+                      {statistics.totalRevenue.toLocaleString()}원
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -401,6 +676,8 @@ export default function ReservationsPage() {
                 <TableHead>종료일</TableHead>
                 <TableHead>인원</TableHead>
                 <TableHead>금액</TableHead>
+                <TableHead>추천인</TableHead>
+                <TableHead>예약확정일</TableHead>
                 <TableHead>예약상태</TableHead>
                 <TableHead>결제상태</TableHead>
                 <TableHead>관리</TableHead>
@@ -424,6 +701,14 @@ export default function ReservationsPage() {
                     <TableCell>{reservation.endDate}</TableCell>
                     <TableCell>{reservation.participants}명</TableCell>
                     <TableCell>{reservation.totalPrice.toLocaleString()}원</TableCell>
+                    <TableCell>
+                      <div className="max-w-24 truncate" title={reservation.referrer}>
+                        {reservation.referrer || '-'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {reservation.confirmedDate || '-'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusInfo.variant}>
                         {statusInfo.text}
@@ -460,6 +745,14 @@ export default function ReservationsPage() {
                               <div>
                                 <Label>참가인원</Label>
                                 <p className="mt-1">{reservation.participants}명</p>
+                              </div>
+                              <div>
+                                <Label>추천인</Label>
+                                <p className="mt-1">{reservation.referrer || '없음'}</p>
+                              </div>
+                              <div>
+                                <Label>예약확정일</Label>
+                                <p className="mt-1">{reservation.confirmedDate || '미확정'}</p>
                               </div>
                             </div>
                             

@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET() {
-  const cookieStore = cookies()
-  const adminToken = cookieStore.get('admin_token')
+  const cookieStore = await cookies()
+  const adminSession = cookieStore.get('admin_session')
 
-  if (adminToken?.value === 'authenticated') {
+  if (adminSession?.value === 'true') {
     return NextResponse.json({ authenticated: true })
   }
 
   return NextResponse.json(
-    { error: '인증되지 않은 사용자입니다.' },
+    { authenticated: false, error: '인증되지 않은 사용자입니다.' },
     { status: 401 }
   )
 } 

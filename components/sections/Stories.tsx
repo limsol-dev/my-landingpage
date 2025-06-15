@@ -39,13 +39,12 @@ export default function Stories() {
       category: "office",
       author: {
         name: "김지영",
-        image: "/avatars/user-1.jpg",
         job: "IT 기업 직장인",
         program: "디지털 디톡스 프로그램"
       },
       rating: 5,
       content: "바쁜 일상에서 벗어나 온전히 나를 위한 시간을 가질 수 있었어요. 특히 명상 프로그램이 정말 좋았습니다. 마음의 안정을 찾는데 큰 도움이 되었어요.",
-      images: ["/stories/story-1-1.jpg", "/stories/story-1-2.jpg"],
+      images: ["/images/healing-room.jpg", "/images/living.jpg"],
       date: "2024.03.15",
       tags: ["힐링", "명상", "휴식"]
     },
@@ -54,13 +53,12 @@ export default function Stories() {
       category: "teacher",
       author: {
         name: "이현우",
-        image: "/avatars/user-2.jpg",
         job: "중학교 교사",
         program: "교원 힐링 프로그램"
       },
       rating: 5,
       content: "학기 중 쌓인 스트레스를 해소할 수 있었습니다. 같은 교직에 있는 분들과의 대화도 큰 위로가 되었고, 새로운 에너지를 얻어갑니다.",
-      images: ["/stories/story-2.jpg"],
+      images: ["/images/room1.jpg"],
       date: "2024.03.10",
       tags: ["교원", "힐링", "재충전"]
     },
@@ -73,7 +71,7 @@ export default function Stories() {
       },
       rating: 5,
       content: "아이들과 함께한 특별한 추억이 되었어요. 자연 속에서 다양한 체험을 할 수 있어서 좋았고, 가족 간의 대화도 더 많아졌어요.",
-      images: ["/stories/story-3.jpg"],
+      images: ["/images/room2.jpg"],
       date: "2024.03.05",
       tags: ["가족", "체험", "자연"]
     }
