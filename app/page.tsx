@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Hero from "@/components/sections/Hero"
 import ProgramMatcher from "@/components/sections/ProgramMatcher"
 import Programs from "@/components/sections/Programs"
@@ -13,6 +13,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Settings } from './admin/types'
+import { supabase } from '@/lib/supabase'
+import { useSettingsStore } from '@/store/settingsStore'
+import { ReservationProvider } from "@/app/admin/context/ReservationContext"
 
 export default function Page() {
   const [showBookingModal, setShowBookingModal] = useState(false)
@@ -24,6 +28,7 @@ export default function Page() {
     guests: '',
     message: ''
   })
+  const { settings } = useSettingsStore()
 
   const handleBookingSubmit = () => {
     // 필수 필드 검증
@@ -70,7 +75,11 @@ export default function Page() {
       message: ''
     })
   }
-  
+
+  if (!settings) {
+    return <div>로딩 중...</div>
+  }
+
   return (
     <main className="min-h-screen bg-background">
       {/* 1. 히어로 섹션 */}
@@ -82,8 +91,10 @@ export default function Page() {
       {/* 3. 주요 프로그램 소개 */}
       <Programs onBookingClick={() => setShowBookingModal(true)} />
 
-      {/* 4. 힐링 스페이스 */}
-      <HealingSpaces onBookingClick={() => setShowBookingModal(true)} />
+      {/* 4. 힐링 스페이스 - ReservationProvider로 감싸기 */}
+      <ReservationProvider>
+        <HealingSpaces onBookingClick={() => setShowBookingModal(true)} />
+      </ReservationProvider>
 
       {/* 5. 실제 참여자 스토리 */}
       <Stories />
