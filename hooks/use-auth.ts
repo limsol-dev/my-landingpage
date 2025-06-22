@@ -57,25 +57,41 @@ export function useAuth() {
   // Supabase 연결 테스트
   const testSupabaseConnection = async () => {
     try {
-      console.log('Supabase 연결 테스트 시작...')
+      console.log('🔍 Supabase 연결 테스트 시작...')
       
-      // 간단한 쿼리로 연결 테스트
+      // 간단한 인증 테스트로 변경
+      const { data: session } = await supabase.auth.getSession()
+      
+      console.log('🔐 Auth 세션 상태:', session ? '로그인됨' : '로그인 필요')
+      
+      // 테이블 존재 여부 확인
       const { data, error } = await supabase
         .from('user_profiles')
         .select('count')
         .limit(1)
 
-      console.log('연결 테스트 결과:', { data, error })
-      
       if (error) {
-        console.error('Supabase 연결 실패:', error)
+        console.warn('⚠️ 데이터베이스 테이블 확인:', error.message)
+        
+        // 테이블이 존재하지 않는 경우
+        if (error.code === '42P01') {
+          console.warn('📋 user_profiles 테이블이 존재하지 않습니다. setup-supabase.sql 스크립트를 실행해주세요.')
+          return false
+        }
+        
+        // 권한 문제
+        if (error.code === '42501') {
+          console.warn('🔒 테이블 접근 권한이 없습니다. RLS 정책을 확인해주세요.')
+          return false
+        }
+        
         return false
       }
       
-      console.log('Supabase 연결 성공!')
+      console.log('✅ Supabase 데이터베이스 연결 성공!')
       return true
     } catch (error) {
-      console.error('Supabase 연결 테스트 예외:', error)
+      console.error('❌ Supabase 연결 테스트 예외:', error)
       return false
     }
   }
@@ -88,7 +104,7 @@ export function useAuth() {
       // 먼저 Supabase 연결 테스트
       const isConnected = await testSupabaseConnection()
       if (!isConnected) {
-        console.error('Supabase 연결 실패로 프로필을 가져올 수 없습니다')
+        console.warn('⚠️ Supabase 연결 실패로 프로필을 가져올 수 없습니다. 테이블 생성 후 다시 시도해주세요.')
         return null
       }
       
@@ -144,20 +160,31 @@ export function useAuth() {
   // 사용자 프로필 생성
   const createUserProfile = async (userId: string) => {
     try {
-      console.log('프로필 생성 시작:', userId)
+      console.log('📝 프로필 생성 시작:', userId)
       
       const { data: userData } = await supabase.auth.getUser()
       const user = userData?.user
       
       if (!user) {
-        console.error('사용자 정보를 가져올 수 없습니다')
+        console.error('❌ 사용자 정보를 가져올 수 없습니다')
         return null
       }
 
-      console.log('사용자 정보:', user)
+      console.log('👤 사용자 정보:', user)
+      console.log('📋 사용자 메타데이터:', user.user_metadata)
+
+      // username이 user_metadata에 있는지 확인
+      const username = user.user_metadata?.username
+      if (!username) {
+        console.error('❌ username이 user_metadata에 없습니다:', user.user_metadata)
+        // 임시로 이메일 앞부분을 username으로 사용
+        const tempUsername = user.email?.split('@')[0] + '_' + Date.now()
+        console.log('⚠️ 임시 username 생성:', tempUsername)
+      }
 
       const profileData = {
         id: userId,
+        username: username || user.email?.split('@')[0] + '_' + Date.now(),
         email: user.email || '',
         full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || '사용자',
         phone: user.user_metadata?.phone || null,
@@ -165,7 +192,7 @@ export function useAuth() {
         role: 'user' as const
       }
 
-      console.log('생성할 프로필 데이터:', profileData)
+      console.log('📝 생성할 프로필 데이터:', profileData)
 
       const { data, error } = await supabase
         .from('user_profiles')
@@ -173,13 +200,20 @@ export function useAuth() {
         .select()
         .single()
 
-      console.log('프로필 생성 결과:', { data, error })
+      console.log('📝 프로필 생성 결과:', { data, error })
 
       if (error) {
-        console.error('프로필 생성 오류:', error)
+        console.error('❌ 프로필 생성 오류:', error)
+        
+        // username 컬럼이 없는 경우
+        if (error.message?.includes('column "username" does not exist')) {
+          console.error('❌ username 컬럼이 존재하지 않습니다! username-migration.sql을 실행해주세요.')
+          return null
+        }
+        
         // 이미 존재하는 경우라면 다시 조회 시도
         if (error.code === '23505') { // unique constraint violation
-          console.log('프로필이 이미 존재함, 다시 조회 시도...')
+          console.log('🔄 프로필이 이미 존재함, 다시 조회 시도...')
           const { data: existingData } = await supabase
             .from('user_profiles')
             .select('*')
@@ -187,7 +221,7 @@ export function useAuth() {
             .single()
           
           if (existingData) {
-            console.log('기존 프로필 조회 성공:', existingData)
+            console.log('✅ 기존 프로필 조회 성공:', existingData)
             setProfile(existingData)
             return existingData
           }
@@ -196,20 +230,20 @@ export function useAuth() {
       }
 
       if (data) {
-        console.log('프로필 생성 성공:', data)
+        console.log('✅ 프로필 생성 성공:', data)
         setProfile(data)
         return data
       }
 
-      console.error('프로필 생성 실패: 데이터가 없음')
+      console.error('❌ 프로필 생성 실패: 데이터가 없음')
       return null
     } catch (error) {
-      console.error('프로필 생성 예외:', error)
+      console.error('❌ 프로필 생성 예외:', error)
       return null
     }
   }
 
-  // 로그인
+  // 로그인 (이메일)
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true)
@@ -231,8 +265,82 @@ export function useAuth() {
     }
   }
 
+  // 로그인 (아이디)
+  const signInWithUsername = async (username: string, password: string) => {
+    try {
+      setLoading(true)
+      console.log('🔐 아이디로 로그인 시도:', username)
+      
+      // 먼저 테이블 구조 확인
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .limit(1)
+
+      if (tableError) {
+        console.error('❌ user_profiles 테이블 접근 오류:', tableError)
+        if (tableError.code === '42P01') {
+          throw new Error('데이터베이스 테이블이 존재하지 않습니다. setup-supabase.sql을 실행해주세요.')
+        }
+        if (tableError.message?.includes('column "username" does not exist')) {
+          throw new Error('username 컬럼이 존재하지 않습니다. username-migration.sql을 실행해주세요.')
+        }
+        throw new Error(`데이터베이스 오류: ${tableError.message}`)
+      }
+      
+      // 아이디로 이메일 찾기
+      console.log('🔍 아이디로 사용자 검색:', username)
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('email, username')
+        .eq('username', username)
+        .single()
+
+      console.log('🔍 검색 결과:', { profileData, profileError })
+
+      if (profileError) {
+        console.error('❌ 프로필 검색 오류:', profileError)
+        if (profileError.code === 'PGRST116') {
+          throw new Error('아이디를 찾을 수 없습니다. 회원가입을 먼저 진행해주세요.')
+        }
+        throw new Error(`사용자 검색 오류: ${profileError.message}`)
+      }
+
+      if (!profileData || !profileData.email) {
+        console.error('❌ 사용자 데이터가 없습니다:', profileData)
+        throw new Error('아이디를 찾을 수 없습니다. 회원가입을 먼저 진행해주세요.')
+      }
+
+      console.log('✅ 사용자 찾음:', profileData.email)
+
+      // 이메일로 로그인
+      console.log('🔐 이메일로 로그인 시도:', profileData.email)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: profileData.email,
+        password,
+      })
+
+      if (error) {
+        console.error('❌ 로그인 오류:', error)
+        if (error.message?.includes('Invalid login credentials')) {
+          throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.')
+        }
+        throw error
+      }
+
+      console.log('✅ 로그인 성공:', data.user?.email)
+      return { user: data.user, session: data.session, error: null }
+    } catch (error: any) {
+      console.error('❌ 아이디 로그인 오류:', error)
+      return { user: null, session: null, error }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // 회원가입
   const signUp = async (email: string, password: string, userData?: { 
+    username?: string
     full_name?: string 
     phone?: string 
     birth_date?: string | null
@@ -243,11 +351,16 @@ export function useAuth() {
         email,
         password,
         options: {
+          emailRedirectTo: undefined, // 이메일 확인 비활성화
           data: userData ? {
+            username: userData.username,
             full_name: userData.full_name,
             phone: userData.phone,
             birth_date: userData.birth_date,
-          } : undefined
+            email_confirmed: true, // 이메일 확인됨으로 설정
+          } : {
+            email_confirmed: true, // 기본값으로도 확인됨 설정
+          }
         }
       })
 
@@ -261,6 +374,52 @@ export function useAuth() {
       return { user: null, session: null, error }
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 아이디 중복 체크
+  const checkUsernameAvailable = async (username: string) => {
+    try {
+      console.log('🔍 아이디 중복 체크 시작:', username)
+      
+      // 먼저 테이블 구조 확인
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('user_profiles')
+        .select('username')
+        .limit(1)
+
+      if (tableError) {
+        console.error('❌ user_profiles 테이블 접근 오류:', tableError)
+        // 테이블이 없거나 username 컬럼이 없으면 false 반환
+        if (tableError.code === '42P01' || tableError.message?.includes('column "username" does not exist')) {
+          console.warn('⚠️ username 컬럼이 존재하지 않습니다. Supabase에서 마이그레이션을 실행해주세요.')
+          return false
+        }
+        return false
+      }
+
+      // 실제 중복 체크
+      const { data, error, count } = await supabase
+        .from('user_profiles')
+        .select('username', { count: 'exact' })
+        .eq('username', username)
+
+      console.log('🔍 중복 체크 결과:', { data, error, count })
+
+      // 에러가 있으면 사용 불가능으로 처리
+      if (error) {
+        console.error('❌ 아이디 중복 체크 오류:', error)
+        return false
+      }
+
+      // count가 0이면 사용 가능, 1 이상이면 이미 사용 중
+      const isAvailable = (count === 0)
+      console.log(isAvailable ? '✅ 사용 가능한 아이디' : '❌ 이미 사용 중인 아이디')
+      
+      return isAvailable
+    } catch (error) {
+      console.error('❌ 아이디 중복 체크 예외:', error)
+      return false
     }
   }
 
@@ -408,5 +567,7 @@ export function useAuth() {
     fetchUserProfile,
     isAdmin: isAdmin(),
     isSuperAdmin: isSuperAdmin(),
+    checkUsernameAvailable,
+    signInWithUsername,
   }
 } 

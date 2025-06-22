@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/use-auth'
 import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, User } from 'lucide-react'
 
 interface LoginFormProps {
   redirectTo?: string
@@ -19,12 +19,12 @@ interface LoginFormProps {
 
 export default function LoginForm({ redirectTo = '/', showSignupLink = true }: LoginFormProps) {
   const router = useRouter()
-  const { signIn, loading } = useAuth()
+  const { signInWithUsername, loading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [credentials, setCredentials] = useState({
-    email: '',
+    username: '',
     password: ''
   })
 
@@ -33,14 +33,14 @@ export default function LoginForm({ redirectTo = '/', showSignupLink = true }: L
     setError(null)
     setIsLoading(true)
 
-    if (!credentials.email || !credentials.password) {
-      setError('이메일과 비밀번호를 모두 입력해주세요.')
+    if (!credentials.username || !credentials.password) {
+      setError('아이디와 비밀번호를 모두 입력해주세요.')
       setIsLoading(false)
       return
     }
 
     try {
-      const { error } = await signIn(credentials.email, credentials.password)
+      const { error } = await signInWithUsername(credentials.username, credentials.password)
       
       if (error) {
         // 에러 메시지를 한국어로 변환
@@ -61,21 +61,28 @@ export default function LoginForm({ redirectTo = '/', showSignupLink = true }: L
   const getErrorMessage = (errorMessage: string) => {
     if (errorMessage.includes('Invalid login credentials') || 
         errorMessage.includes('invalid_credentials')) {
-      return '이메일 또는 비밀번호가 올바르지 않습니다.'
-    }
-    if (errorMessage.includes('Email not confirmed')) {
-      return '이메일 인증이 필요합니다. 이메일을 확인해주세요.'
+      return '아이디 또는 비밀번호가 올바르지 않습니다.'
     }
     if (errorMessage.includes('Too many requests')) {
       return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.'
     }
-    return '로그인 중 오류가 발생했습니다.'
+    if (errorMessage.includes('User not found')) {
+      return '등록되지 않은 아이디입니다. 회원가입을 먼저 진행해주세요.'
+    }
+    return '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+  }
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword)
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl text-center">로그인</CardTitle>
+        <div className="text-center text-sm text-gray-600">
+          <p>아이디와 비밀번호로 로그인하세요</p>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,19 +93,22 @@ export default function LoginForm({ redirectTo = '/', showSignupLink = true }: L
           )}
           
           <div className="space-y-2">
-            <Label htmlFor="email">이메일</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="example@example.com"
-              value={credentials.email}
-              onChange={(e) => setCredentials(prev => ({
-                ...prev,
-                email: e.target.value
-              }))}
-              required
-              disabled={isLoading || loading}
-            />
+            <Label htmlFor="username">아이디</Label>
+            <div className="relative">
+              <Input
+                id="username"
+                type="text"
+                placeholder="아이디를 입력하세요"
+                value={credentials.username}
+                onChange={(e) => setCredentials(prev => ({
+                  ...prev,
+                  username: e.target.value
+                }))}
+                required
+                disabled={isLoading || loading}
+              />
+              <User className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
           </div>
           
           <div className="space-y-2">
@@ -116,10 +126,12 @@ export default function LoginForm({ redirectTo = '/', showSignupLink = true }: L
                 required
                 disabled={isLoading || loading}
               />
-              <button
+              <Button
                 type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                onClick={() => setShowPassword(!showPassword)}
+                variant="ghost"
+                size="sm"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center h-full"
+                onClick={togglePasswordVisibility}
                 disabled={isLoading || loading}
               >
                 {showPassword ? (
@@ -127,7 +139,7 @@ export default function LoginForm({ redirectTo = '/', showSignupLink = true }: L
                 ) : (
                   <Eye className="h-4 w-4 text-gray-400" />
                 )}
-              </button>
+              </Button>
             </div>
           </div>
           
