@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 접근성 개선 - Dialog 오버레이 스타일링 */
+[data-radix-scroll-area-disabled] {
+  pointer-events: auto !important;
+}
+
+/* 모달 관련 접근성 개선 */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* React DevTools 및 경고 메시지 스타일 개선 */
+.react-dev-tools-notice {
+  display: none !important;
+}
+
 @import "react-day-picker/dist/style.css";
 
 @layer base {

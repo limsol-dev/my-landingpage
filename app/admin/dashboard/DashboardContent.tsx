@@ -11,8 +11,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { CalendarDays, Users, CreditCard, Clock, Eye } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarDays, Users, CreditCard, Clock, Eye, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 // 예약 타입 정의
 interface Reservation {
@@ -486,6 +486,54 @@ const reservations: Reservation[] = [
 export function DashboardContent() {
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [liveReservations, setLiveReservations] = useState<Reservation[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+
+  // 실시간 예약 데이터 불러오기
+  const fetchLiveReservations = async () => {
+    setIsLoading(true)
+    try {
+      console.log('대시보드: 예약 데이터 요청 시작...')
+      const response = await fetch('/api/reservations/create', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      console.log('대시보드: 받은 데이터:', data)
+      
+      if (data.success && Array.isArray(data.reservations)) {
+        console.log('대시보드: 실시간 예약 수:', data.reservations.length)
+        setLiveReservations(data.reservations)
+        setLastUpdated(new Date())
+      } else {
+        console.error('대시보드: API 응답 형식 오류:', data)
+        setLiveReservations([])
+      }
+    } catch (error) {
+      console.error('대시보드: 예약 데이터 불러오기 실패:', error)
+      setLiveReservations([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 컴포넌트 마운트 시 데이터 불러오기
+  useEffect(() => {
+    fetchLiveReservations()
+    
+    // 30초마다 자동 새로고침
+    const interval = setInterval(fetchLiveReservations, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // 예약 상세보기 함수
   const handleViewDetails = (reservation: Reservation) => {
@@ -523,15 +571,18 @@ export function DashboardContent() {
     }
   }
 
+  // 기존 샘플 데이터와 실시간 데이터 합치기
+  const allReservations = [...reservations, ...liveReservations]
+
   // 오늘의 예약 수
-  const todayReservations = reservations.filter(reservation => {
+  const todayReservations = allReservations.filter(reservation => {
     const today = new Date();
     const startDate = new Date(reservation.startDate);
     return startDate.toDateString() === today.toDateString();
   }).length;
 
   // 이번 주 예약 수
-  const thisWeekReservations = reservations.filter(reservation => {
+  const thisWeekReservations = allReservations.filter(reservation => {
     const today = new Date();
     const startDate = new Date(reservation.startDate);
     const diffTime = Math.abs(startDate.getTime() - today.getTime());
@@ -539,25 +590,49 @@ export function DashboardContent() {
     return diffDays <= 7;
   }).length;
 
-  // 총 예약 금액
-  const totalAmount = reservations.reduce((sum, reservation) => sum + reservation.totalPrice, 0);
+  // 총 예약 금액 (확정/완료된 예약만)
+  const totalAmount = allReservations
+    .filter(reservation => reservation.status === 'confirmed' || reservation.status === 'completed')
+    .reduce((sum, reservation) => sum + reservation.totalPrice, 0);
 
   // 평균 체류 기간
-  const averageStay = reservations.length > 0
-    ? reservations.reduce((sum, reservation) => {
+  const averageStay = allReservations.length > 0
+    ? allReservations.reduce((sum, reservation) => {
         const startDate = new Date(reservation.startDate);
         const endDate = new Date(reservation.endDate);
         const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1; // 최소 1일
         return sum + diffDays;
-      }, 0) / reservations.length
+      }, 0) / allReservations.length
     : 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">
-        대시보드 - 전체 예약 {reservations.length}건
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">
+          대시보드 - 전체 예약 {allReservations.length}건
+          {liveReservations.length > 0 && (
+            <span className="ml-2 text-lg text-green-600 font-normal">
+              • 실시간 예약 {liveReservations.length}건 포함
+            </span>
+          )}
+        </h1>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500">
+            마지막 업데이트: {lastUpdated.toLocaleTimeString('ko-KR')}
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={fetchLiveReservations}
+            disabled={isLoading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? '새로고침 중...' : '실시간 새로고침'}
+          </Button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -604,7 +679,7 @@ export function DashboardContent() {
       {/* 최근 예약 목록 */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">
-          최근 예약 목록 ({reservations.length}건 중 최신 10건)
+          최근 예약 목록 ({allReservations.length}건 중 최신 10건)
         </h2>
         <div className="bg-white rounded-lg shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -622,9 +697,19 @@ export function DashboardContent() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {reservations
+              {allReservations
                 .slice()
-                .reverse() // 최신 예약부터 표시 (R028 -> R027 -> ... -> R019 순서)
+                .sort((a, b) => {
+                  // 최신순 정렬 (createdAt이 있으면 그것으로, 없으면 예약번호로)
+                  if (a.createdAt && b.createdAt) {
+                    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                  }
+                  
+                  // createdAt이 없는 경우 예약번호로 역순 정렬 (높은 번호가 위에)
+                  const aId = a.id.replace(/\D/g, '') // 숫자만 추출
+                  const bId = b.id.replace(/\D/g, '') // 숫자만 추출
+                  return parseInt(bId) - parseInt(aId)
+                })
                 .slice(0, 10) // 최신 10건만 표시
                 .map((reservation) => (
                 <tr key={reservation.id}>

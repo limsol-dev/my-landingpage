@@ -544,22 +544,34 @@ export default function ReservationsPage() {
       })
       
       console.log('응답 상태:', response.status)
+      console.log('응답 헤더:', response.headers)
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error('API 오류 응답:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
       }
       
       const data = await response.json()
       console.log('받은 데이터:', data)
+      console.log('데이터 타입:', typeof data)
+      console.log('success 필드:', data.success)
+      console.log('reservations 배열:', data.reservations)
       
-      if (data.success) {
+      if (data.success && Array.isArray(data.reservations)) {
         console.log('실시간 예약 수:', data.reservations.length)
+        console.log('첫 번째 예약 데이터:', data.reservations[0])
         setLiveReservations(data.reservations)
       } else {
-        console.error('API 응답 오류:', data.error)
+        console.error('API 응답 형식 오류:', data)
+        console.error('success:', data.success)
+        console.error('reservations 타입:', typeof data.reservations)
+        // 빈 배열로 설정
+        setLiveReservations([])
       }
     } catch (error) {
       console.error('예약 데이터 불러오기 실패:', error)
+      console.error('오류 상세:', error instanceof Error ? error.message : String(error))
       // 오류 발생 시 빈 배열로 설정
       setLiveReservations([])
     } finally {
@@ -832,7 +844,7 @@ export default function ReservationsPage() {
   // 기존 샘플 데이터와 실시간 데이터 합치기
   const allReservations = [...reservations, ...liveReservations]
 
-  // 필터링된 예약 목록
+  // 필터링된 예약 목록 (최신순 정렬)
   const filteredReservations = allReservations.filter(reservation => {
     const matchesSearch = reservation.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          reservation.programType.toLowerCase().includes(searchTerm.toLowerCase())
@@ -848,6 +860,16 @@ export default function ReservationsPage() {
     const matchesMonth = selectedMonth === 'all' || (reservationDate.getMonth() + 1).toString().padStart(2, '0') === selectedMonth
     
     return matchesSearch && matchesStatus && matchesDate && matchesYear && matchesMonth
+  }).sort((a, b) => {
+    // 최신순 정렬 (createdAt이 있으면 그것으로, 없으면 예약번호로)
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+    
+    // createdAt이 없는 경우 예약번호로 역순 정렬 (높은 번호가 위에)
+    const aId = a.id.replace(/\D/g, '') // 숫자만 추출
+    const bId = b.id.replace(/\D/g, '') // 숫자만 추출
+    return parseInt(bId) - parseInt(aId)
   })
 
   // 통계 계산 - 선택된 날짜에 따라 동적 계산

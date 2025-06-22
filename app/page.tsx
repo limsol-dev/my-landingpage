@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Navbar from "@/components/Navbar"
 import Hero from "@/components/sections/Hero"
 import ProgramMatcher from "@/components/sections/ProgramMatcher"
 import Programs from "@/components/sections/Programs"
@@ -14,7 +15,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Settings } from './admin/types'
-import { supabase } from '@/lib/supabase'
 import { useSettingsStore } from '@/store/settingsStore'
 import { ReservationProvider } from "@/app/admin/context/ReservationContext"
 
@@ -30,7 +30,9 @@ export default function Page() {
   })
   const { settings } = useSettingsStore()
 
-  const handleBookingSubmit = () => {
+  const handleBookingSubmit = async () => {
+    console.log('🚀 랜딩페이지 예약 시작:', bookingData)
+    
     // 필수 필드 검증
     if (!bookingData.name.trim()) {
       alert('❌ 이름을 입력해주세요!')
@@ -53,27 +55,92 @@ export default function Page() {
       return
     }
 
-    // 예약 완료 처리
-    setShowBookingModal(false)
-    alert(`✅ 예약 문의가 접수되었습니다!
+    console.log('✅ 폼 검증 통과')
 
+    try {
+      // 예약 데이터 준비 (Supabase API 호출)
+      const reservationData = {
+        customerName: bookingData.name.trim(),
+        customerPhone: bookingData.phone.trim(),
+        customerEmail: '', // 이메일은 선택사항
+        programType: '일반 예약',
+        checkIn: bookingData.checkIn,
+        checkOut: bookingData.checkOut,
+        totalPrice: 0, // 기본값, 나중에 계산
+        totalGuests: parseInt(bookingData.guests),
+        adults: parseInt(bookingData.guests), // 일단 전체를 성인으로 설정
+        children: 0,
+        bbq: { grillCount: 0, meatSetCount: 0, fullSetCount: 0 },
+        meal: { breakfastCount: 0 },
+        transport: { needsBus: false },
+        experience: { farmExperienceCount: 0 },
+        extra: { laundryCount: 0 },
+        specialRequests: bookingData.message.trim() || null,
+        referrer: '랜딩페이지 문의'
+      }
+      
+      console.log('📤 API 호출 데이터:', reservationData)
+      
+      // Supabase API 호출
+      const response = await fetch('/api/reservations/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reservationData)
+      })
+      
+      console.log('📡 API 응답 상태:', response.status, response.statusText)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('❌ API 응답 오류:', errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+      
+      const result = await response.json()
+      console.log('📥 API 응답 데이터:', result)
+      
+      if (result.success) {
+        // 예약 완료 처리
+        setShowBookingModal(false)
+        alert(`✅ 예약 문의가 정상적으로 접수되었습니다!
+
+예약번호: ${result.reservation.id}
 예약자: ${bookingData.name}
 연락처: ${bookingData.phone}
 체크인: ${bookingData.checkIn}
 체크아웃: ${bookingData.checkOut}
 인원: ${bookingData.guests}명
 
-빠른 시일 내에 연락드리겠습니다.`)
-    
-    // 폼 초기화
-    setBookingData({
-      name: '',
-      phone: '',
-      checkIn: '',
-      checkOut: '',
-      guests: '',
-      message: ''
-    })
+예약 정보가 시스템에 저장되었으며,
+관리자 확인 후 빠른 시일 내에 연락드리겠습니다.`)
+        
+        // 폼 초기화
+        setBookingData({
+          name: '',
+          phone: '',
+          checkIn: '',
+          checkOut: '',
+          guests: '',
+          message: ''
+        })
+      } else {
+        throw new Error(result.error || '예약 처리 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('💥 예약 제출 오류:', error)
+      console.error('💥 오류 타입:', typeof error)
+      console.error('💥 오류 상세:', error instanceof Error ? error.message : String(error))
+      console.error('💥 오류 스택:', error instanceof Error ? error.stack : 'N/A')
+      
+      alert(`❌ 예약 처리 중 오류가 발생했습니다.
+      
+오류 내용: ${error instanceof Error ? error.message : '알 수 없는 오류'}
+
+개발자 도구 콘솔을 확인하여 자세한 오류를 보거나,
+직접 연락주시기 바랍니다.`)
+    }
   }
 
   if (!settings) {
@@ -82,8 +149,14 @@ export default function Page() {
 
   return (
     <main className="min-h-screen bg-background">
+      {/* 네비게이션 추가 */}
+      <Navbar />
+      
       {/* 1. 히어로 섹션 */}
-      <Hero onBookingClick={() => setShowBookingModal(true)} />
+      <Hero onBookingClick={() => {
+        console.log('🎯 예약 모달 열기 시도!')
+        setShowBookingModal(true)
+      }} />
 
       {/* 2. 프로그램 퀵 매칭 */}
       <ProgramMatcher />
@@ -195,7 +268,13 @@ export default function Page() {
             <Button type="button" variant="outline" onClick={() => setShowBookingModal(false)}>
               취소
             </Button>
-            <Button type="button" onClick={handleBookingSubmit}>
+            <Button 
+              type="button" 
+              onClick={() => {
+                console.log('🔥 예약 버튼 클릭됨!')
+                handleBookingSubmit()
+              }}
+            >
               예약 문의하기
             </Button>
           </DialogFooter>

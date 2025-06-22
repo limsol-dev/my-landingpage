@@ -1,106 +1,45 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { toast, Toaster } from 'sonner'
 import { useAuth } from '../context/AuthContext'
+import LoginForm from '@/components/auth/LoginForm'
+import { Toaster } from 'sonner'
 
 export default function AdminLoginPage() {
   const router = useRouter()
-  const { login, isAuthenticated } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [credentials, setCredentials] = useState({
-    email: '',
-    password: ''
-  })
+  const { isAuthenticated, isAdmin } = useAuth()
 
-  // 이미 로그인된 경우 대시보드로 리다이렉트
+  // 이미 로그인된 관리자의 경우 대시보드로 리다이렉트
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && isAdmin) {
       router.push('/admin/dashboard')
     }
-  }, [isAuthenticated, router])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const success = await login(credentials.email, credentials.password)
-      
-      if (success) {
-        toast.success('로그인 성공!')
-        setTimeout(() => {
-          router.push('/admin/dashboard')
-        }, 1000)
-      } else {
-        toast.error('이메일 또는 비밀번호가 올바르지 않습니다.')
-      }
-    } catch (error) {
-      toast.error('로그인 중 오류가 발생했습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [isAuthenticated, isAdmin, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Toaster position="top-center" />
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">관리자 로그인</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">이메일</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@example.com"
-                value={credentials.email}
-                onChange={(e) => setCredentials(prev => ({
-                  ...prev,
-                  email: e.target.value
-                }))}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
-                id="password"
-                type="password"
-                value={credentials.password}
-                onChange={(e) => setCredentials(prev => ({
-                  ...prev,
-                  password: e.target.value
-                }))}
-                required
-              />
-            </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? '로그인 중...' : '로그인'}
-            </Button>
-          </form>
-          
-          <div className="mt-6 p-4 bg-gray-50 rounded-md">
-            <p className="text-sm text-gray-600 text-center mb-2">테스트 계정</p>
-            <div className="text-xs text-gray-500 space-y-1">
-              <p><strong>이메일:</strong> admin@example.com</p>
-              <p><strong>비밀번호:</strong> admin1234</p>
-            </div>
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">관리자 로그인</h1>
+          <p className="mt-2 text-gray-600">관리자 계정으로 로그인하세요</p>
+        </div>
+        
+        <LoginForm 
+          redirectTo="/admin/dashboard" 
+          showSignupLink={false}
+        />
+        
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-medium text-blue-800 mb-2">관리자 계정 안내</h3>
+          <div className="text-xs text-blue-700 space-y-1">
+            <p>• 관리자 권한이 있는 계정만 로그인 가능합니다</p>
+            <p>• 계정이 없는 경우 시스템 관리자에게 문의하세요</p>
+            <p>• 테스트: admin@example.com / admin123456</p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 } 
