@@ -43,7 +43,7 @@ export default function UsersPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-[#2F513F]">회원 관리</h1>
-          <p className="text-muted-foreground">달팽이아지트펜션 회원 현황을 관리합니다</p>
+                      <p className="text-muted-foreground">달팽이 아지트 펜션 회원 현황을 관리합니다</p>
         </div>
         <Button className="bg-[#2F513F] hover:bg-[#3d6b4f]">
           <UserPlus className="h-4 w-4 mr-2" />

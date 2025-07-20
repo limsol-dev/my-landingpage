@@ -74,7 +74,7 @@ export default function HealingSpaces({ onBookingClick }: HealingSpacesProps) {
       <section className="py-12 sm:py-20 bg-muted/30">
         <div className="container">
           <div className="text-center space-y-4 mb-12 px-4">
-            <h2 className="text-2xl sm:text-3xl font-bold">달팽이아지트펜션 공간 구성</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold">달팽이 아지트 펜션 공간 구성</h2>
             <p className="text-sm sm:text-base text-muted-foreground">
               작은방 2개 또는 큰방 1개로 선택하여 사용 가능한 프라이빗한 공간
             </p>
@@ -202,7 +202,7 @@ export default function HealingSpaces({ onBookingClick }: HealingSpacesProps) {
                 360° VR 투어
               </DialogTitle>
               <p className="text-muted-foreground">
-                달팽이아지트펜션의 모든 공간을 360도로 둘러보세요
+                달팽이 아지트 펜션의 모든 공간을 360도로 둘러보세요
               </p>
             </DialogHeader>
             <div className="flex-1 mx-6 mb-6">
@@ -216,7 +216,7 @@ export default function HealingSpaces({ onBookingClick }: HealingSpacesProps) {
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="달팽이아지트펜션 360° VR 투어"
+                  title="달팽이 아지트 펜션 360° VR 투어"
                 />
                 
                 {/* VR 투어 대체 콘텐츠 */}

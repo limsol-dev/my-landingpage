@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--project-ref=atxpuystwztisamzdybo"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_11b5968464613c80affdff8e32b4f9db5d4686459815",
+        "SUPABASE_URL": "https://atxpuystwztisamzdybo.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0eHB1eXN0d3p0aXNhbXpkeWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEzNjg0MzAsImV4cCI6MjA2Njk0NDQzMH0.R7g6izi585ZP3GxJ613erWqdZJYzAXS-S2ID0ve1T14"
+      }
+    }
+  }
+}

@@ -92,7 +92,7 @@ export const defaultSettings: Settings = {
   },
   address: '강원도 강릉시 사천면 진리해변길 79-7',
   contactNumber: '010-1234-5678',
-  pensionName: '피닉스 펜션',
+  pensionName: '달팽이 아지트 펜션',
   ownerName: '임솔',
   email: 'admin@pension.com',
   autoConfirm: true,

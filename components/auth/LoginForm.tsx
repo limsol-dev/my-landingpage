@@ -2,182 +2,271 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { useAuth } from '@/hooks/use-auth'
-import Link from 'next/link'
-import { Eye, EyeOff, User } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { GoogleIcon } from './GoogleIcon'
+import { supabase } from '@/lib/supabase'
 
 interface LoginFormProps {
   redirectTo?: string
+  title?: string
+  description?: string
   showSignupLink?: boolean
 }
 
-export default function LoginForm({ redirectTo = '/', showSignupLink = true }: LoginFormProps) {
+export default function LoginForm({
+  redirectTo = '/',
+  title = '로그인',
+  description = '계정에 로그인하세요',
+  showSignupLink = true
+}: LoginFormProps) {
   const router = useRouter()
-  const { signInWithUsername, loading } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [credentials, setCredentials] = useState({
-    username: '',
+  const { signIn, signInWithGoogle, loading } = useAuth()
+
+  // 폼 상태
+  const [formData, setFormData] = useState({
+    email: '',
     password: ''
   })
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 입력값 변경 처리
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    if (error) setError(null) // 에러 초기화
+  }
+
+  // 이메일/패스워드 로그인
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setIsLoading(true)
+    setIsSubmitting(true)
 
-    if (!credentials.username || !credentials.password) {
-      setError('아이디와 비밀번호를 모두 입력해주세요.')
-      setIsLoading(false)
+    // 유효성 검사
+    if (!formData.email || !formData.password) {
+      setError('이메일과 비밀번호를 모두 입력해주세요.')
+      setIsSubmitting(false)
+      return
+    }
+
+    if (!formData.email.includes('@')) {
+      setError('올바른 이메일 형식을 입력해주세요.')
+      setIsSubmitting(false)
       return
     }
 
     try {
-      const { error } = await signInWithUsername(credentials.username, credentials.password)
+      const { error } = await signIn(formData.email, formData.password)
       
       if (error) {
-        // 에러 메시지를 한국어로 변환
-        const errorMessage = getErrorMessage(error.message)
+        // Supabase 에러 메시지 한국어로 변환
+        const errorMessage = getKoreanErrorMessage(error.message)
         setError(errorMessage)
       } else {
-        // 로그인 성공
+        // 로그인 성공 시 리다이렉트
         router.push(redirectTo)
+        router.refresh()
       }
-    } catch (error: any) {
-      setError('로그인 중 오류가 발생했습니다.')
-      console.error('로그인 오류:', error)
+    } catch (err) {
+      console.error('로그인 오류:', err)
+      setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
     } finally {
-      setIsLoading(false)
+      setIsSubmitting(false)
     }
   }
 
-  const getErrorMessage = (errorMessage: string) => {
-    if (errorMessage.includes('Invalid login credentials') || 
-        errorMessage.includes('invalid_credentials')) {
-      return '아이디 또는 비밀번호가 올바르지 않습니다.'
+  // 구글 로그인
+  const handleGoogleLogin = async () => {
+    setError(null)
+    
+    try {
+      const { error } = await signInWithGoogle()
+      
+      if (error) {
+        const errorMessage = getKoreanErrorMessage(error.message)
+        setError(errorMessage)
+      }
+      // 성공 시 자동으로 리다이렉트됨
+    } catch (err) {
+      console.error('구글 로그인 오류:', err)
+      setError('구글 로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
     }
-    if (errorMessage.includes('Too many requests')) {
-      return '너무 많은 요청이 발생했습니다. 잠시 후 다시 시도해주세요.'
-    }
-    if (errorMessage.includes('User not found')) {
-      return '등록되지 않은 아이디입니다. 회원가입을 먼저 진행해주세요.'
-    }
-    return '로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
   }
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
+  // 에러 메시지 한국어 변환
+  const getKoreanErrorMessage = (errorMessage: string): string => {
+    const errorMap: { [key: string]: string } = {
+      'Invalid login credentials': '이메일 또는 비밀번호가 올바르지 않습니다.',
+      'Email not confirmed': '이메일 인증이 완료되지 않았습니다. 인증 메일을 확인해주세요.',
+      'Too many requests': '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.',
+      'User not found': '존재하지 않는 계정입니다.',
+      'Invalid email': '올바르지 않은 이메일 형식입니다.',
+      'Signup not allowed for this instance': '회원가입이 허용되지 않습니다.',
+      'Password should be at least 6 characters': '비밀번호는 최소 6자 이상이어야 합니다.'
+    }
+
+    return errorMap[errorMessage] || '로그인 중 오류가 발생했습니다. 다시 시도해주세요.'
+  }
+
+  // 이메일 인증 재전송
+  const handleResendConfirmation = async () => {
+    if (!formData.email) {
+      setError('이메일을 입력해주세요.')
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email
+      })
+
+      if (error) {
+        setError('인증 메일 재전송에 실패했습니다.')
+      } else {
+        setError(null)
+        alert('인증 메일이 재전송되었습니다. 이메일을 확인해주세요.')
+      }
+    } catch (err) {
+      console.error('인증 메일 재전송 오류:', err)
+      setError('인증 메일 재전송 중 오류가 발생했습니다.')
+    }
   }
 
   return (
     <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">로그인</CardTitle>
-        <div className="text-center text-sm text-gray-600">
-          <p>아이디와 비밀번호로 로그인하세요</p>
-        </div>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">
+          {title}
+        </CardTitle>
+        <CardDescription className="text-center">
+          {description}
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
+
+      <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* 구글 로그인 버튼 */}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={handleGoogleLogin}
+          disabled={loading || isSubmitting}
+        >
+          <GoogleIcon className="w-4 h-4 mr-2" />
+          구글로 로그인
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">또는</span>
+          </div>
+        </div>
+
+        {/* 이메일/패스워드 로그인 폼 */}
+        <form onSubmit={handleEmailLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username">아이디</Label>
+            <Label htmlFor="email">이메일</Label>
             <div className="relative">
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                id="username"
-                type="text"
-                placeholder="아이디를 입력하세요"
-                value={credentials.username}
-                onChange={(e) => setCredentials(prev => ({
-                  ...prev,
-                  username: e.target.value
-                }))}
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className="pl-10"
+                disabled={isSubmitting}
                 required
-                disabled={isLoading || loading}
               />
-              <User className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="password">비밀번호</Label>
             <div className="relative">
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
                 id="password"
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 placeholder="비밀번호를 입력하세요"
-                value={credentials.password}
-                onChange={(e) => setCredentials(prev => ({
-                  ...prev,
-                  password: e.target.value
-                }))}
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                className="pl-10 pr-10"
+                disabled={isSubmitting}
                 required
-                disabled={isLoading || loading}
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center h-full"
-                onClick={togglePasswordVisibility}
-                disabled={isLoading || loading}
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isSubmitting}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <Eye className="h-4 w-4 text-gray-400" />
-                )}
-              </Button>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading || loading}
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <Link
+                href="/forgot-password"
+                className="text-primary hover:underline"
+              >
+                비밀번호를 잊으셨나요?
+              </Link>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || loading}
           >
-            {isLoading || loading ? '로그인 중...' : '로그인'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                로그인 중...
+              </>
+            ) : (
+              '로그인'
+            )}
           </Button>
         </form>
-        
-        <div className="mt-4 text-center">
-          <Link 
-            href="/forgot-password" 
-            className="text-sm text-blue-600 hover:underline"
-          >
-            비밀번호를 잊으셨나요?
-          </Link>
-        </div>
-        
-        {showSignupLink && (
-          <>
-            <Separator className="my-4" />
-            <div className="text-center">
-              <p className="text-sm text-gray-600">
-                계정이 없으신가요?{' '}
-                <Link 
-                  href="/signup" 
-                  className="text-blue-600 hover:underline font-medium"
-                >
-                  회원가입
-                </Link>
-              </p>
-            </div>
-          </>
-        )}
       </CardContent>
+
+      {showSignupLink && (
+        <CardFooter>
+          <div className="text-sm text-center w-full">
+            계정이 없으신가요?{' '}
+            <Link
+              href="/signup"
+              className="text-primary hover:underline font-medium"
+            >
+              회원가입
+            </Link>
+          </div>
+        </CardFooter>
+      )}
     </Card>
   )
 } 

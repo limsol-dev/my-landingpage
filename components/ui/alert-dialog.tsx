@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
-
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
@@ -10,7 +9,18 @@ const AlertDialog = AlertDialogPrimitive.Root
 
 const AlertDialogTrigger = AlertDialogPrimitive.Trigger
 
-const AlertDialogPortal = AlertDialogPrimitive.Portal
+const AlertDialogPortal = ({ children, ...props }: AlertDialogPrimitive.AlertDialogPortalProps) => {
+  return (
+    <AlertDialogPrimitive.Portal {...props}>
+      <div
+        // body 대신 직접적인 컨테이너에서만 aria-hidden 관리
+        style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+      >
+        {children}
+      </div>
+    </AlertDialogPrimitive.Portal>
+  )
+}
 
 const AlertDialogOverlay = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Overlay>,
@@ -30,7 +40,43 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
+>(({ className, ...props }, ref) => {
+  // 접근성 개선: body aria-hidden 문제 해결
+  React.useEffect(() => {
+    const preventBodyAriaHidden = () => {
+      const body = document.body
+      if (body && body.getAttribute('aria-hidden') === 'true') {
+        body.removeAttribute('aria-hidden')
+      }
+    }
+
+    // 초기 체크
+    preventBodyAriaHidden()
+
+    // MutationObserver로 실시간 모니터링
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'aria-hidden' &&
+          mutation.target === document.body
+        ) {
+          preventBodyAriaHidden()
+        }
+      })
+    })
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['aria-hidden']
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  return (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content
@@ -39,10 +85,26 @@ const AlertDialogContent = React.forwardRef<
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
+        // 접근성 개선: 포커스 관리
+        onOpenAutoFocus={(event) => {
+          // 기본 포커스 동작 유지하면서 body aria-hidden 방지
+          const body = document.body
+          if (body.getAttribute('aria-hidden') === 'true') {
+            body.removeAttribute('aria-hidden')
+          }
+        }}
+        onCloseAutoFocus={(event) => {
+          // 모달 닫힐 때도 body aria-hidden 정리
+          const body = document.body
+          if (body.getAttribute('aria-hidden') === 'true') {
+            body.removeAttribute('aria-hidden')
+          }
+        }}
       {...props}
     />
   </AlertDialogPortal>
-))
+  )
+})
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
 
 const AlertDialogHeader = ({
@@ -95,8 +157,7 @@ const AlertDialogDescription = React.forwardRef<
     {...props}
   />
 ))
-AlertDialogDescription.displayName =
-  AlertDialogPrimitive.Description.displayName
+AlertDialogDescription.displayName = AlertDialogPrimitive.Description.displayName
 
 const AlertDialogAction = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Action>,

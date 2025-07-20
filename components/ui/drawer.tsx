@@ -2,23 +2,35 @@
 
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
-
 import { cn } from "@/lib/utils"
 
 const Drawer = ({
   shouldScaleBackground = true,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
+  return (
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
     {...props}
   />
 )
+}
 Drawer.displayName = "Drawer"
 
 const DrawerTrigger = DrawerPrimitive.Trigger
 
-const DrawerPortal = DrawerPrimitive.Portal
+const DrawerPortal = ({ children, ...props }: React.ComponentProps<typeof DrawerPrimitive.Portal>) => {
+  return (
+    <DrawerPrimitive.Portal {...props}>
+      <div
+        // body 대신 직접적인 컨테이너에서만 aria-hidden 관리
+        style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+      >
+        {children}
+      </div>
+    </DrawerPrimitive.Portal>
+  )
+}
 
 const DrawerClose = DrawerPrimitive.Close
 
@@ -37,7 +49,43 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => {
+  // 접근성 개선: body aria-hidden 문제 해결
+  React.useEffect(() => {
+    const preventBodyAriaHidden = () => {
+      const body = document.body
+      if (body && body.getAttribute('aria-hidden') === 'true') {
+        body.removeAttribute('aria-hidden')
+      }
+    }
+
+    // 초기 체크
+    preventBodyAriaHidden()
+
+    // MutationObserver로 실시간 모니터링
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (
+          mutation.type === 'attributes' &&
+          mutation.attributeName === 'aria-hidden' &&
+          mutation.target === document.body
+        ) {
+          preventBodyAriaHidden()
+        }
+      })
+    })
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['aria-hidden']
+    })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  return (
   <DrawerPortal>
     <DrawerOverlay />
     <DrawerPrimitive.Content
@@ -52,7 +100,8 @@ const DrawerContent = React.forwardRef<
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
-))
+  )
+})
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({
@@ -70,10 +119,7 @@ const DrawerFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div
-    className={cn("mt-auto flex flex-col gap-2 p-4", className)}
-    {...props}
-  />
+  <div className={cn("mt-auto flex flex-col gap-2 p-4", className)} {...props} />
 )
 DrawerFooter.displayName = "DrawerFooter"
 

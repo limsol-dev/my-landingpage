@@ -1,0 +1,284 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🎨 Styling System & Design Excellence
+
+## 📋 DESIGN CONTEXT
+Korean pension booking platform using shadcn/ui + Tailwind CSS with Korean brand colors and cultural design patterns.
+**CRITICAL**: All styling must support Korean text rendering and cultural UX expectations.
+
+## ✅ MUST DO - Design System Imperatives
+
+### 1. CSS Variables System (ABSOLUTE FOUNDATION)
+Reference [app/globals.css](mdc:app/globals.css) as the single source of truth:
+
+```css
+/* ✅ MANDATORY: Use ONLY these CSS variables */
+:root {
+  --background: 0 0% 100%;           /* 배경색 */
+  --foreground: 222.2 84% 4.9%;      /* 주 텍스트 색상 */
+  --primary: 221.2 83.2% 53.3%;      /* 주 브랜드 색상 */
+  --primary-foreground: 210 40% 98%; /* 주 브랜드 텍스트 */
+  --secondary: 210 40% 96.1%;        /* 보조 색상 */
+  --muted: 210 40% 96.1%;           /* 비활성 색상 */
+  --accent: 210 40% 96.1%;          /* 강조 색상 */
+  --destructive: 0 84.2% 60.2%;     /* 위험/삭제 색상 */
+  --border: 214.3 31.8% 91.4%;      /* 테두리 색상 */
+  --radius: 0.5rem;                 /* 기본 border-radius */
+}
+
+/* ✅ CRITICAL: Korean pension brand colors */
+.brand-colors {
+  --pension-primary: #2F513F;      /* 달팽이 아지트 메인 (숲 녹색) */
+  --pension-secondary: #8B7355;    /* 따뜻한 갈색 */
+  --pension-accent: #E8F5E1;       /* 연한 녹색 */
+  --pension-warm: #F5F1EB;         /* 따뜻한 베이지 */
+}
+```
+
+### 2. Tailwind Class Architecture (STRICT HIERARCHY)
+```typescript
+// ✅ MANDATORY: Class ordering system
+const classNameStructure = cn(
+  // 1. LAYOUT & POSITIONING (Foundation)
+  "relative flex items-center justify-center",
+  "w-full h-full min-h-screen",
+  "container mx-auto",
+  
+  // 2. SPACING & SIZING (Structure)
+  "p-4 px-6 py-8",         // Padding
+  "m-2 mx-auto my-4",      // Margin
+  "gap-4 space-y-6",       // Gap & Space
+  
+  // 3. VISUAL STYLING (Appearance)
+  "bg-background text-foreground",
+  "border border-border rounded-md",
+  "shadow-sm shadow-lg",
+  
+  // 4. TYPOGRAPHY (Korean-optimized)
+  "text-sm font-medium leading-relaxed",
+  "tracking-tight",         // Korean text optimization
+  
+  // 5. INTERACTIVE STATES (Behavior)
+  "hover:bg-accent hover:text-accent-foreground",
+  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "active:scale-95",
+  "disabled:opacity-50 disabled:pointer-events-none",
+  
+  // 6. RESPONSIVE DESIGN (Progressive Enhancement)
+  "text-xs sm:text-sm md:text-base lg:text-lg",
+  "p-2 sm:p-4 md:p-6 lg:p-8",
+  "flex-col sm:flex-row",
+  "hidden sm:block lg:flex",
+  
+  // 7. CUSTOM/OVERRIDE CLASSES (Last)
+  className  // Always last
+)
+```
+
+### 3. Korean Typography Standards (CULTURAL REQUIREMENT)
+```typescript
+// ✅ MANDATORY: Korean text rendering optimization
+const koreanTypographyClasses = {
+  // Korean font stack
+  fontFamily: "font-[Inter] supports-[font-variation-settings:normal]:font-sans",
+  
+  // Korean text sizing (larger for readability)
+  heading: {
+    h1: "text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-medium",
+    h2: "text-xl sm:text-2xl md:text-3xl lg:text-4xl font-medium",
+    h3: "text-lg sm:text-xl md:text-2xl font-medium",
+    h4: "text-base sm:text-lg md:text-xl font-medium"
+  },
+  
+  // Korean body text (optimal line-height for Korean)
+  body: {
+    large: "text-base sm:text-lg leading-relaxed tracking-tight",
+    normal: "text-sm sm:text-base leading-relaxed tracking-tight",
+    small: "text-xs sm:text-sm leading-relaxed tracking-tight"
+  },
+  
+  // Korean UI text
+  ui: {
+    button: "text-sm font-medium tracking-tight",
+    label: "text-sm font-medium text-foreground",
+    placeholder: "text-sm text-muted-foreground",
+    error: "text-xs text-destructive font-medium"
+  }
+}
+
+// ✅ CRITICAL: Korean form styling
+const koreanFormClasses = {
+  label: "block text-sm font-medium text-foreground mb-2",
+  input: "w-full px-3 py-2 text-sm border border-input rounded-md bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  error: "mt-1 text-xs text-destructive font-medium",
+  required: "text-destructive ml-1" // 빨간 별표
+}
+```
+
+### 4. Responsive Design Patterns (MOBILE-FIRST KOREAN UX)
+```typescript
+// ✅ MANDATORY: Korean mobile-first breakpoints
+const responsivePatterns = {
+  // Korean mobile usage patterns
+  container: "w-full max-w-sm mx-auto sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl",
+  
+  // Korean touch targets (larger for Korean users)
+  button: "h-11 px-6 sm:h-10 sm:px-4 md:h-12 md:px-8",
+  input: "h-11 px-4 sm:h-10 sm:px-3 md:h-12 md:px-4",
+  
+  // Korean content spacing
+  section: "py-12 sm:py-16 md:py-20 lg:py-24",
+  card: "p-4 sm:p-6 md:p-8",
+  
+  // Korean navigation patterns
+  nav: "flex flex-col sm:flex-row gap-2 sm:gap-4 md:gap-6",
+  menu: "w-full sm:w-auto"
+}
+
+// ✅ CRITICAL: Korean pension booking layout
+const bookingLayoutClasses = {
+  hero: "min-h-screen flex items-center py-4 sm:py-0",
+  form: "space-y-4 sm:space-y-6",
+  grid: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6",
+  modal: "w-full max-w-[calc(100vw-2rem)] sm:max-w-[500px]"
+}
+```
+
+### 5. Component Styling Patterns (REFERENCE IMPLEMENTATIONS)
+Follow [components/ui/button.tsx](mdc:components/ui/button.tsx) for CVA patterns:
+
+```typescript
+// ✅ MANDATORY: Korean pension component variants
+const pensionComponentVariants = cva(
+  // Base classes (Korean-optimized)
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        // Korean pension brand variants
+        default: "bg-[#2F513F] text-white shadow hover:bg-[#2F513F]/90",
+        korean: "bg-[#8B7355] text-white shadow hover:bg-[#8B7355]/90",
+        accent: "bg-[#E8F5E1] text-[#2F513F] shadow-sm hover:bg-[#E8F5E1]/80",
+        warm: "bg-[#F5F1EB] text-[#2F513F] shadow-sm hover:bg-[#F5F1EB]/80",
+        // Standard variants
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline"
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",        // Korean preferred size
+        xl: "h-12 rounded-md px-10 text-base",  // Korean mobile size
+        icon: "h-9 w-9"
+      }
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default"
+    }
+  }
+)
+```
+
+## ❌ NEVER DO - Design System Violations
+
+### 🚫 FORBIDDEN Styling Patterns
+```typescript
+// ❌ NEVER: Inline styles
+const BadComponent = () => (
+  <div style={{ backgroundColor: 'red', padding: '10px' }}>
+    콘텐츠
+  </div>
+)
+
+// ❌ NEVER: Hardcoded colors (bypass design system)
+const BadColors = () => (
+  <button className="bg-red-500 text-white">  {/* Use design tokens */}
+    예약하기
+  </button>
+)
+
+// ❌ NEVER: Arbitrary values without semantic meaning
+const BadArbitrary = () => (
+  <div className="w-[427px] h-[193px] rotate-[17deg]">  {/* No context */}
+    콘텐츠
+  </div>
+)
+
+// ❌ NEVER: !important or Tailwind ! prefix overuse
+const BadImportant = () => (
+  <div className="!bg-red-500 !text-white !p-10">  {/* Avoid !important */}
+    콘텐츠
+  </div>
+)
+
+// ❌ NEVER: Non-Korean-optimized typography
+const BadTypography = () => (
+  <p className="text-xs leading-tight tracking-tighter">  {/* Too tight for Korean */}
+    한글 텍스트가 읽기 어려움
+  </p>
+)
+```
+
+### 🚫 FORBIDDEN Responsive Patterns
+```typescript
+// ❌ NEVER: Desktop-first responsive design
+const BadResponsive = () => (
+  <div className="text-xl md:text-sm">  {/* Wrong direction */}
+    한글 콘텐츠
+  </div>
+)
+
+// ❌ NEVER: Ignore Korean mobile usage patterns
+const BadMobile = () => (
+  <button className="h-6 px-2 text-xs">  {/* Too small for Korean mobile */}
+    예약하기
+  </button>
+)
+
+// ❌ NEVER: Use non-semantic breakpoints
+const BadBreakpoints = () => (
+  <div className="lg:hidden xl:block 2xl:hidden">  {/* No logic */}
+    콘텐츠
+  </div>
+)
+```
+
+### 🚫 FORBIDDEN CSS Variable Usage
+```css
+/* ❌ NEVER: Custom CSS variables outside design system */
+:root {
+  --my-custom-color: #ff0000;  /* Use design tokens */
+  --random-spacing: 17px;      /* Use Tailwind spacing */
+}
+
+/* ❌ NEVER: Override shadcn/ui internals directly */
+.ui-button {
+  background: red !important;  /* Use CVA variants instead */
+}
+```
+
+---
+
+## 🎯 DESIGN QUALITY CHECKLIST
+Before styling any component:
+- [ ] Uses CSS variables from design system
+- [ ] Follows Tailwind class hierarchy
+- [ ] Optimized for Korean text rendering
+- [ ] Mobile-first responsive design
+- [ ] Uses CVA for component variants
+- [ ] Supports Korean brand colors
+- [ ] Accessible focus states
+- [ ] Consistent spacing and typography
+
+**Reference Components:**
+- Base UI: [components/ui/table.tsx](mdc:components/ui/table.tsx)
+- Complex Layout: [components/sections/Hero.tsx](mdc:components/sections/Hero.tsx)
+- Design System: [app/globals.css](mdc:app/globals.css)
+

@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ⚡ Performance & Optimization Excellence
+
+## 📋 PERFORMANCE CONTEXT
+Korean pension booking platform requiring fast loading for Korean mobile users.
+**CRITICAL**: Optimize for Korean network conditions and mobile-first usage.
+
+## ✅ MUST DO - Performance Imperatives
+
+### 1. Next.js 15 Optimization (MANDATORY)
+```typescript
+// ✅ CRITICAL: Image optimization
+import Image from "next/image"
+
+const OptimizedImage = () => (
+  <Image
+    src="/images/pension-room.jpg"
+    alt="달팽이 아지트 펜션 객실"
+    width={800}
+    height={600}
+    priority={true}  // Above-the-fold images
+    placeholder="blur"
+    blurDataURL="data:image/jpeg;base64,..."
+  />
+)
+
+// ✅ MANDATORY: Dynamic imports for code splitting
+const BookingModal = dynamic(() => import('@/components/BookingModal'), {
+  loading: () => <div>예약 폼 로딩 중...</div>,
+  ssr: false  // Client-only components
+})
+```
+
+### 2. Bundle Optimization (REQUIRED)
+```typescript
+// ✅ CRITICAL: Tree shaking imports
+import { format } from 'date-fns'  // Not: import * as dateFns
+import { Button } from '@/components/ui/button'  // Not: import * from ui
+
+// ✅ MANDATORY: Lazy loading for Korean components
+const KoreanDatePicker = lazy(() => 
+  import('@/components/KoreanDatePicker').then(module => ({
+    default: module.KoreanDatePicker
+  }))
+)
+```
+
+### 3. Korean Mobile Optimization (ESSENTIAL)
+```typescript
+// ✅ CRITICAL: Korean font optimization
+const koreanFont = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',  // Prevent FOIT
+  preload: true
+})
+
+// ✅ MANDATORY: Mobile-first Korean UX
+const KoreanResponsiveComponent = () => (
+  <div className="
+    text-sm sm:text-base     // Korean text sizes
+    leading-relaxed          // Korean line-height
+    tracking-tight           // Korean character spacing
+    touch-manipulation       // Better mobile touch
+  ">
+</div>
+)
+```
+
+## ❌ NEVER DO - Performance Violations
+
+### 🚫 FORBIDDEN Performance Patterns
+```typescript
+// ❌ NEVER: Large bundle imports
+import * as _ from 'lodash'  // Use specific imports
+import * as dateFns from 'date-fns'  // Use tree-shaking
+
+// ❌ NEVER: Synchronous operations in components
+const BadComponent = () => {
+  const heavyCalculation = expensiveSync()  // Blocks UI
+  return <div>{heavyCalculation}</div>
+}
+
+// ❌ NEVER: Unoptimized images
+<img src="/large-image.jpg" />  // Use Next.js Image
+```
+
+---
+
+## 🎯 PERFORMANCE CHECKLIST
+- [ ] Next.js Image for all images
+- [ ] Dynamic imports for large components  
+- [ ] Tree-shaking for external libraries
+- [ ] Korean font optimization
+- [ ] Mobile-first rendering strategy
+

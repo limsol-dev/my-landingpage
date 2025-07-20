@@ -1,0 +1,113 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🏗️ Architecture & Project Structure Rules
+
+## 📋 CONTEXT & SCOPE
+This is a Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui Korean pension booking system. 
+**CRITICAL**: Follow these patterns to maintain architectural consistency and Korean localization.
+
+## ✅ MUST DO - Architecture Imperatives
+
+### 1. File Organization Hierarchy (NON-NEGOTIABLE)
+```
+✅ CORRECT Structure:
+app/
+├── (routes)/page.tsx           # Landing page: [app/page.tsx](mdc:app/page.tsx)
+├── admin/                      # Admin dashboard: [app/admin/layout.tsx](mdc:app/admin/layout.tsx)
+├── api/                        # API routes: [app/api/reservations/route.ts](mdc:app/api/reservations/route.ts)
+├── booking/                    # Booking flow
+├── components/                 # Page-specific components
+├── lib/                        # Utilities: [app/lib/utils.ts](mdc:app/lib/utils.ts)
+└── types/                      # Type definitions: [app/types/reservation.ts](mdc:app/types/reservation.ts)
+
+components/
+├── ui/                         # shadcn/ui components: [components/ui/table.tsx](mdc:components/ui/table.tsx)
+├── sections/                   # Landing page sections: [components/sections/Hero.tsx](mdc:components/sections/Hero.tsx)
+├── admin/                      # Admin-specific components
+├── auth/                       # Authentication components
+└── reservation/                # Booking-specific components
+```
+
+### 2. Import Order Protocol (STRICT ENFORCEMENT)
+```typescript
+// ✅ MANDATORY Import Sequence:
+
+// 1. React & Next.js Core (FIRST)
+"use client"
+import * as React from "react"
+import { useState, useEffect } from "react"
+import Image from "next/image"
+
+// 2. External Libraries (Alphabetical)
+import { clsx } from "clsx"
+import { format } from "date-fns"
+import { Slot } from "@radix-ui/react-slot"
+
+// 3. Internal Imports with @ Alias (Alphabetical)
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { useBookingStore } from "@/store/useBookingStore"
+
+// 4. Relative Imports (Last Resort Only)
+import "./component.css"
+```
+
+### 3. TypeScript Path Configuration (ABSOLUTE REQUIREMENT)
+```typescript
+// ✅ ALWAYS Use @ Alias from [tsconfig.json](mdc:tsconfig.json):
+import { Component } from "@/components/ui/component"
+import { utils } from "@/lib/utils"
+import { ReservationInfo } from "@/types/reservation"
+
+// ✅ Alias Mapping:
+"@/*" → "./*"                   # Root workspace
+"@/components" → "./components"  # UI components
+"@/app" → "./app"               # App router
+"@/lib" → "./lib"               # Utilities
+"@/types" → "./types"           # Type definitions
+"@/store" → "./store"           # State management
+```
+
+## ❌ NEVER DO - Architecture Violations
+
+### 🚫 FORBIDDEN Import Patterns
+```typescript
+// ❌ NEVER: Relative imports beyond one level
+import { Component } from "../../../components/ui/component"
+
+// ❌ NEVER: Mix Pages Router with App Router
+import { GetServerSideProps } from "next" // Pages Router pattern
+
+// ❌ NEVER: Direct node_modules imports
+import Button from "node_modules/@radix-ui/react-button"
+
+// ❌ NEVER: Circular dependencies
+// file-a.ts imports file-b.ts AND file-b.ts imports file-a.ts
+```
+
+### 🚫 FORBIDDEN File Organization
+```typescript
+// ❌ NEVER: Mix component types in same directory
+components/
+├── Button.tsx          # UI component
+├── LoginPage.tsx       # Page component (WRONG LOCATION)
+├── api-utils.ts        # API utility (WRONG LOCATION)
+
+// ❌ NEVER: Nested page components outside app/ directory
+src/pages/              # Pages Router pattern (FORBIDDEN)
+```
+
+---
+
+## 🎯 DECISION FRAMEWORK
+**Before creating any file, ask:**
+1. "Is this a UI component, page component, or utility?"
+2. "Does this belong in app/ (App Router) or components/ (reusable)?"
+3. "Am I using the correct @ alias import path?"
+4. "Does this follow the Korean pension domain logic?"
+
+**If unsure, reference:** [app/page.tsx](mdc:app/page.tsx) for page structure, [components/ui/button.tsx](mdc:components/ui/button.tsx) for component patterns.
+

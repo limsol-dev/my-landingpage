@@ -1,56 +1,234 @@
 import { createClient } from '@supabase/supabase-js'
+import { Database } from '@/types/supabase'
 
-// 개발 환경에서 임시 기본값 설정
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://temp-project.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'temp-anon-key'
+// 환경변수에서 Supabase 설정 가져오기
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// 기본 환경 변수 검증 (개발 환경에서는 경고만 표시)
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  console.warn('⚠️  NEXT_PUBLIC_SUPABASE_URL 환경변수가 설정되지 않았습니다. .env.local 파일을 생성하고 Supabase 설정을 완료해주세요.')
+// 환경변수 검증
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables')
 }
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  console.warn('⚠️  NEXT_PUBLIC_SUPABASE_ANON_KEY 환경변수가 설정되지 않았습니다. .env.local 파일을 생성하고 Supabase 설정을 완료해주세요.')
-}
+// Lazy 싱글톤 패턴으로 클라이언트 생성
+let _supabaseClient: ReturnType<typeof createClient<Database>> | null = null
+let _supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null
 
-// 실제 Supabase 키가 설정되었는지 확인
-const isRealSupabaseConfigured = 
-  process.env.NEXT_PUBLIC_SUPABASE_URL && 
-  process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://temp-project.supabase.co' &&
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY && 
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== 'temp-anon-key'
-
-if (isRealSupabaseConfigured) {
-  console.log('✅ Supabase 설정이 완료되었습니다.')
-} else {
-  console.warn('⚠️  Supabase 환경변수가 실제 값으로 설정되지 않았습니다. 데이터베이스 기능이 제한될 수 있습니다.')
-}
-
-// 클라이언트 사이드용 (브라우저)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+// 클라이언트 사이드 Supabase 클라이언트 (Lazy 싱글톤)
+export const supabase = (() => {
+  if (!_supabaseClient) {
+    _supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce'
+      },
+      global: {
+        headers: {
+          'x-client-info': 'snail-pension'
+        }
+      }
+    })
+    console.log('✅ Supabase 클라이언트가 초기화되었습니다.')
   }
-})
+  return _supabaseClient
+})()
 
-// 서버 사이드용 (API 라우트) - Service Role Key 사용
-export const supabaseAdmin = supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey, {
+// 서버 사이드 관리자 클라이언트 (Lazy 싱글톤)
+export const supabaseAdmin = (() => {
+  if (!supabaseServiceKey) return null
+  
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     })
-  : null
+  }
+  return _supabaseAdmin
+})()
 
-export default supabase
+// 타입 정의
+export interface UserProfile {
+  id: string
+  email: string
+  username: string | null
+  full_name: string | null
+  avatar_url: string | null
+  phone: string | null
+  birth_date: string | null
+  gender: 'male' | 'female' | 'other' | null
+  role: 'user' | 'admin' | 'super_admin'
+  oauth_provider: string | null
+  oauth_provider_id: string | null
+  email_verified: boolean
+  created_at: string
+  updated_at: string
+  last_login_at: string | null
+}
 
-// TypeScript 타입 확장
-declare global {
-  interface Window {
-    __supabase_client__: any
+export interface AuthSession {
+  access_token: string
+  refresh_token: string
+  expires_in: number
+  token_type: string
+  user: {
+    id: string
+    email: string
+    user_metadata: Record<string, any>
+    created_at: string
+  }
+}
+
+// 인증 관련 유틸리티 함수들
+export const authHelpers = {
+  // 현재 사용자 가져오기
+  async getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return null
+    
+    // 사용자 프로필 정보도 함께 가져오기
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    
+    return {
+      ...user,
+      profile
+    }
+  },
+
+  // 이메일/패스워드 로그인
+  async signInWithPassword(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+    
+    if (error) {
+      return { user: null, session: null, error }
+    }
+    
+    // 로그인 시간 업데이트
+    if (data.user) {
+      await supabase
+        .from('user_profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', data.user.id)
+    }
+    
+    return { user: data.user, session: data.session, error: null }
+  },
+
+  // 이메일/패스워드 회원가입
+  async signUpWithPassword(
+    email: string, 
+    password: string, 
+    options?: {
+      username?: string
+      full_name?: string
+      phone?: string
+    }
+  ) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username: options?.username,
+          full_name: options?.full_name,
+          phone: options?.phone
+        }
+      }
+    })
+    
+    return { user: data.user, session: data.session, error }
+  },
+
+  // 구글 OAuth 로그인
+  async signInWithGoogle() {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    })
+    
+    return { data, error }
+  },
+
+  // 로그아웃
+  async signOut() {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+  },
+
+  // 패스워드 재설정
+  async resetPassword(email: string) {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`
+    })
+    
+    return { data, error }
+  }
+}
+
+// 데이터베이스 헬퍼 함수들
+export const dbHelpers = {
+  // 사용자 프로필 생성
+  async createUserProfile(userId: string, profileData: Partial<UserProfile>) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .insert({
+        id: userId,
+        ...profileData
+      })
+      .select()
+      .single()
+    
+    return { profile: data, error }
+  },
+
+  // 사용자 프로필 업데이트
+  async updateUserProfile(userId: string, updates: Partial<UserProfile>) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+      .single()
+    
+    return { profile: data, error }
+  },
+
+  // 사용자 프로필 조회
+  async getUserProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
+    
+    return { profile: data, error }
+  },
+
+  // 사용자명 중복 확인
+  async checkUsernameAvailability(username: string) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('username', username)
+      .single()
+    
+    // 데이터가 없으면 사용 가능
+    return { available: !data && !error, error }
   }
 } 

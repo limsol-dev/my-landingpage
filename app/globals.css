@@ -2,19 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 접근성 개선 - Dialog 오버레이 스타일링 */
+/* 접근성 개선 - 모달/대화상자 스타일링 */
 [data-radix-scroll-area-disabled] {
   pointer-events: auto !important;
 }
 
-/* 모달 관련 접근성 개선 */
+/* 모달이 열릴 때 스크롤 방지 (body aria-hidden 대신 사용) */
 body.modal-open {
   overflow: hidden;
 }
 
-/* React DevTools 및 경고 메시지 스타일 개선 */
-.react-dev-tools-notice {
-  display: none !important;
+/* 모달 포커스 관리 개선 */
+[data-radix-dialog-content] {
+  outline: none;
+}
+
+[data-radix-dialog-content]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 @import "react-day-picker/dist/style.css";

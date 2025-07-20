@@ -1,37 +1,78 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { loginUser, isAdmin } from '@/lib/auth'
+import { z } from 'zod'
 
-// 실제 구현에서는 환경 변수나 데이터베이스에서 관리해야 합니다
-const ADMIN_EMAIL = 'admin@example.com'
-const ADMIN_PASSWORD = 'admin1234'
+const loginSchema = z.object({
+  email: z.string().email('올바른 이메일 주소를 입력해주세요'),
+  password: z.string().min(1, '비밀번호를 입력해주세요')
+})
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const body = await request.json()
+    
+    // 입력 데이터 검증
+    const validatedData = loginSchema.parse(body)
+    
+    // 로그인 처리
+    const result = await loginUser(validatedData.email, validatedData.password)
+    
+    // 관리자 권한 확인
+    if (!isAdmin(result.user)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: '관리자 권한이 필요합니다' 
+        },
+        { status: 403 }
+      )
+    }
+    
+    // 응답 생성
+    const response = NextResponse.json({
+      success: true,
+      message: '관리자 로그인 성공',
+      user: result.user,
+      token: result.token
+    })
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const response = NextResponse.json({ success: true })
-      
-      // 세션 쿠키 설정
-      response.cookies.set('admin_session', 'true', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        path: '/',
-        maxAge: 60 * 60 * 24 // 24시간
-      })
+    // 쿠키에 토큰 설정
+    response.cookies.set('auth_token', result.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 // 7일
+    })
 
-      return response
+    // 관리자 세션 쿠키도 별도로 설정
+    response.cookies.set('admin_session', 'true', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 // 7일
+    })
+
+    return response
+
+  } catch (error: any) {
+    console.error('관리자 로그인 API 오류:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: error.errors[0].message 
+        },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json(
-      { success: false, error: '이메일 또는 비밀번호가 올바르지 않습니다.' },
+      { 
+        success: false, 
+        error: error.message || '로그인에 실패했습니다' 
+      },
       { status: 401 }
-    )
-  } catch (error) {
-    console.error('Login error:', error)
-    return NextResponse.json(
-      { success: false, error: '로그인 중 오류가 발생했습니다.' },
-      { status: 500 }
     )
   }
 } 

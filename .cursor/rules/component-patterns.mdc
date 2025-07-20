@@ -1,0 +1,225 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🧩 Component Patterns & Best Practices
+
+## 📋 CONTEXT & DOMAIN
+Korean pension booking system with shadcn/ui design system. 
+**CRITICAL**: All components must support Korean localization and booking workflow.
+
+## ✅ MUST DO - Component Architecture Excellence
+
+### 1. shadcn/ui Component Pattern (ABSOLUTE STANDARD)
+Follow EXACTLY the pattern from [components/ui/table.tsx](mdc:components/ui/table.tsx):
+
+```typescript
+"use client"
+
+import * as React from "react"
+import { cn } from "@/lib/utils"
+
+// ✅ MANDATORY: forwardRef pattern for UI components
+const Table = React.forwardRef<
+  HTMLTableElement,
+  React.HTMLAttributes<HTMLTableElement>
+>(({ className, ...props }, ref) => (
+  <div className="relative w-full overflow-auto">
+    <table
+      ref={ref}
+      className={cn("w-full caption-bottom text-sm", className)}
+      {...props}
+    />
+  </div>
+))
+Table.displayName = "Table"
+
+// ✅ MANDATORY: Named export with displayName
+export { Table }
+```
+
+### 2. Class Variance Authority (CVA) Pattern (REQUIRED)
+Reference [components/ui/button.tsx](mdc:components/ui/button.tsx) implementation:
+
+```typescript
+import { cva, type VariantProps } from "class-variance-authority"
+
+// ✅ CRITICAL: Define all variants upfront
+const buttonVariants = cva(
+  // Base classes (always applied)
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+// ✅ CRITICAL: Extend props with VariantProps
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+}
+```
+
+### 3. Korean Booking Component Pattern (DOMAIN-SPECIFIC)
+```typescript
+// ✅ MANDATORY: Korean pension booking interface
+interface BookingFormProps {
+  /** 예약 완료 콜백 */
+  onBookingComplete: (reservation: ReservationInfo) => void
+  /** 초기 체크인 날짜 */
+  initialCheckIn?: Date
+  /** 초기 체크아웃 날짜 */
+  initialCheckOut?: Date
+  /** 최대 인원수 */
+  maxGuests?: number
+  className?: string
+}
+
+// ✅ MANDATORY: Korean text and validation
+const BookingForm = ({ onBookingComplete, ...props }: BookingFormProps) => {
+  const [formData, setFormData] = useState({
+    customerName: "",           // 예약자명
+    customerPhone: "",          // 연락처
+    checkIn: undefined as Date | undefined,
+    checkOut: undefined as Date | undefined,
+    totalGuests: 1,            // 총 인원
+    specialRequests: ""        // 특별 요청사항
+  })
+
+  // ✅ CRITICAL: Korean phone number validation
+  const validatePhoneNumber = (phone: string) => {
+    const koreanPhoneRegex = /^010-\d{4}-\d{4}$/
+    return koreanPhoneRegex.test(phone)
+  }
+
+  return (
+    <form className="space-y-4">
+      <div>
+        <Label htmlFor="name">예약자명 *</Label>
+        <Input 
+          id="name"
+          placeholder="이름을 입력해주세요"
+          value={formData.customerName}
+          onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+        />
+      </div>
+      {/* More Korean form fields... */}
+    </form>
+  )
+}
+```
+
+### 4. State Management Patterns (ARCHITECTURAL REQUIREMENT)
+Reference [store/useBookingStore.ts](mdc:store/useBookingStore.ts):
+
+```typescript
+// ✅ SIMPLE STATE: Use Zustand
+import { create } from 'zustand'
+
+interface BookingStore {
+  selectedProgram: Program | null
+  setSelectedProgram: (program: Program | null) => void
+  // Korean reservation state
+  reservationData: ReservationInfo | null
+  updateReservation: (data: Partial<ReservationInfo>) => void
+}
+
+export const useBookingStore = create<BookingStore>((set, get) => ({
+  selectedProgram: null,
+  setSelectedProgram: (program) => set({ selectedProgram: program }),
+  reservationData: null,
+  updateReservation: (data) => set(state => ({
+    reservationData: state.reservationData 
+      ? { ...state.reservationData, ...data }
+      : null
+  }))
+}))
+
+// ✅ COMPLEX STATE: Use React Context (Admin section)
+// Reference: [app/admin/context/ReservationContext.tsx](mdc:app/admin/context/ReservationContext.tsx)
+```
+
+## ❌ NEVER DO - Component Anti-Patterns
+
+### 🚫 FORBIDDEN Component Structures
+```typescript
+// ❌ NEVER: Component without forwardRef for UI components
+const BadButton = ({ className, ...props }) => (
+  <button className={className} {...props} />
+)
+
+// ❌ NEVER: Missing displayName
+const GoodButton = React.forwardRef(...)
+// Missing: GoodButton.displayName = "GoodButton"
+
+// ❌ NEVER: Direct style objects
+const BadComponent = () => (
+  <div style={{ backgroundColor: 'red', padding: '10px' }}>
+    Content
+  </div>
+)
+
+// ❌ NEVER: Hardcoded Korean text without proper structure
+const BadText = () => <p>예약이 완료되었습니다</p>  // No i18n consideration
+
+// ❌ NEVER: Anonymous functions in JSX
+const BadEventHandling = () => (
+  <button onClick={() => console.log('clicked')}>
+    Click
+  </button>
+)
+```
+
+### 🚫 FORBIDDEN State Patterns
+```typescript
+// ❌ NEVER: Prop drilling beyond 2 levels
+<GrandParent>
+  <Parent data={data}>
+    <Child data={data}>
+      <GrandChild data={data} />  // Use Context instead
+    </Child>
+  </Parent>
+</GrandParent>
+
+// ❌ NEVER: Direct state mutation
+const [reservation, setReservation] = useState<ReservationInfo>()
+reservation.checkIn = new Date()  // FORBIDDEN - use setReservation
+
+// ❌ NEVER: useState for server state
+const [users, setUsers] = useState([])  // Use React Query or SWR
+```
+
+---
+
+## 🎯 QUALITY CHECKLIST
+Before creating any component, verify:
+- [ ] Does it follow the forwardRef pattern?
+- [ ] Does it use CVA for styling variants?
+- [ ] Does it support Korean text properly?
+- [ ] Does it use proper TypeScript interfaces?
+- [ ] Does it handle loading and error states?
+- [ ] Does it use appropriate state management (Zustand vs Context)?
+
+**Reference Implementation:** [components/sections/Hero.tsx](mdc:components/sections/Hero.tsx) for complex components
+

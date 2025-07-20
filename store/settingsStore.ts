@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Settings } from '@/app/admin/types';
 
 const defaultSettings: Settings = {
-  pensionName: '달팽이아지트펜션',
+  pensionName: '달팽이 아지트 펜션',
   ownerName: '',
   contactNumber: '',
   email: '',

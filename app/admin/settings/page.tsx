@@ -54,7 +54,7 @@ type ServiceSettings = {
 
 export default function SettingsPage() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
-    pensionName: '산들바람 펜션',
+    pensionName: '달팽이 아지트 펜션',
     ownerName: '김철수',
     phone: '010-1234-5678',
     email: 'info@example.com',

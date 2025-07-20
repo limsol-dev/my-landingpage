@@ -1,0 +1,216 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+# 코드 가이드라인
+
+## 1. 프로젝트 개요
+본 프로젝트는 Next.js 14(App Router), TypeScript, Tailwind CSS를 프론트엔드에 사용하고, Supabase(PostgreSQL, Auth, Storage, Edge Functions, Realtime)를 백엔드 BaaS로 활용합니다. 인프라는 Vercel + Cloudflare CDN, AWS S3 백업 구조로 구성하여 글로벌 엣지 캐싱과 수평 확장성을 확보합니다.  
+주요 설계 결정은 다음과 같습니다.  
+- **도메인 기반 모듈화**: rooms, programs, reservations, users, payments, notification 등 도메인 단위 폴더 분리  
+- **레이어드 아키텍처**: Presentation(pages/components) → Business Logic(services/functions) → Data Access(db schemas, migrations) → Infra(config)  
+- **데이터 흐름**: Next.js Server Actions/API Routes → Supabase Edge Functions → PostgreSQL → Realtime/WebSocket 푸시
+
+## 2. 핵심 원칙
+1. 책임 분리(Separation of Concerns): 한 파일·함수는 하나의 역할만 수행해야 함.  
+2. 타입 안정성(Type Safety): 모든 변수·함수에 명시적 타입 선언, `strict` 모드 유지.  
+3. 일관된 코드 스타일(Consistency): Prettier·ESLint 규칙 준수 및 커스텀 룰 적용.  
+4. 예외 처리 표준화(Error Handling): 서비스 계층에 `try/catch` + 중앙 로깅/알림 필수.  
+5. 재사용성·확장성(Modularity): 공용 컴포넌트∙훅∙유틸은 `src/shared`에 집중 관리.
+
+## 3. 언어별 가이드라인
+
+### 3.1 Next.js + TypeScript
+- 파일 조직  
+  - `src/pages/(auth|reservation|admin)/…`  
+  - `src/app/(공용 컴포넌트)/…`  
+  - `src/components/ui/…`, `src/domains/…`, `src/shared/…`  
+- 임포트 관리  
+  - 절대경로(`tsconfig.json` `paths`) 사용: `import { fetchRooms } from 'domains/room/service'`  
+  - 함수·컴포넌트는 named export, 페이지는 default export 허용  
+- 에러 처리 패턴  
+  - Server Action 내 `try { … } catch (error) { logError(error); throw new Error('예약 실패') }`  
+  - 클라이언트는 `.catch()` 또는 `useSWR` `onError` 핸들러로 처리
+
+### 3.2 Supabase Edge Functions (Node.js + TypeScript)
+- 파일 조직  
+  - `supabase/functions/[domain]/[action].ts` (예: `supabase/functions/payment/process.ts`)  
+- 환경변수  
+  - `Deno.env.get('SUPABASE_URL')` 등 Deno 방식 사용, 누출 금지  
+- 에러 처리  
+  - HTTP 응답에 `status: number`, `message: string` 명시  
+  - 재시도 로직: `await retry(async () => { … }, { retries: 3, factor: 2 })`
+
+### 3.3 Tailwind CSS
+- 파일 조직  
+  - `src/styles/tailwind.css` + `tailwind.config.js`  
+- 클래스 네이밍  
+  - 유틸리티만 사용, 커스텀 클래스 최소화  
+  - `@apply`는 컴포넌트 단위로만 허용  
+- 반응형  
+  - `sm:`, `md:`, `lg:` 프리픽스 표준화
+
+## 4. 코드 스타일 규칙
+
+### MUST Follow
+1. **strict 모드 유지**  
+   rationale: 타입 안전성 확보  
+   ```typescript
+   // tsconfig.json
+   {
+     "compilerOptions": {
+       "strict": true,
+       "noImplicitAny": true,
+       "strictNullChecks": true
+     }
+   }
+   ```
+2. **도메인별 폴더 분리**  
+   rationale: 높은 응집도, 낮은 결합도  
+   ```bash
+   src/
+   ├─ domains/
+   │  ├─ room/
+   │  │  ├─ service.ts
+   │  │  └─ types.ts
+   ```
+3. **Server Action + Form 사용**  
+   rationale: 데이터 일관성, CSRF 방어  
+   ```typescript
+   // src/app/reserve/page.tsx
+   'use server';
+   import { createReservation } from 'domains/reservation/service';
+   
+   export async function POST(formData: FormData) {
+     try {
+       const data = Object.fromEntries(formData);
+       return await createReservation(data);
+     } catch (e) {
+       console.error(e);
+       return new Response('예약 실패', { status: 500 });
+     }
+   }
+   ```
+4. **SWR for Data Fetching**  
+   rationale: 캐싱·재검증  
+   ```typescript
+   import useSWR from 'swr';
+   const fetcher = (url: string) => fetch(url).then(res => res.json());
+   export function useRooms() {
+     return useSWR('/api/rooms', fetcher);
+   }
+   ```
+5. **Tailwind @apply은 컴포넌트 전용**  
+   rationale: 중복 방지, 유지보수 용이  
+   ```css
+   /* src/styles/button.css */
+   .btn-primary {
+     @apply bg-blue-600 text-white px-4 py-2 rounded;
+   }
+   ```
+
+### MUST NOT Do
+1. **대규모 모듈 정의 금지**  
+   - 하나의 파일에 여러 도메인 로직 작성 금지  
+   - ⇒ 기능별 파일 분리  
+2. **`any` 사용 금지**  
+   - 타입이 불명확하면 제네릭·유틸 타입 활용  
+3. **인라인 스타일(tailwind class 제외) 금지**  
+   - 유지보수성 저하  
+4. **console.log 실 운행 코드 금지**  
+   - 디버그용 logger 또는 Sentry 사용  
+5. **DB 호출 직접 컴포넌트 내 구현 금지**  
+   - 반드시 서비스 계층 통해 호출  
+   ```typescript
+   // ❌ 직접 호출
+   const { data } = await supabase.from('rooms').select('*');
+   // ✅ 서비스 분리
+   import { fetchAllRooms } from 'domains/room/service';
+   const rooms = await fetchAllRooms();
+   ```
+
+## 5. 아키텍처 패턴
+
+### 모듈 구조 가이드
+- `src/domains/{domain}/{service|controller|types}.ts`  
+- `src/shared/{components|hooks|utils}`  
+
+### 데이터 흐름
+1. **프레젠테이션**: Next.js 페이지/컴포넌트 →  
+2. **비즈니스 로직**: `domains/*/service.ts` →  
+3. **데이터 액세스**: `supabaseClient` → PostgreSQL →  
+4. **실시간 푸시**: Supabase Realtime 채널
+
+### 상태 관리
+- 읽기: `useSWR`  
+- 쓰기: Next.js Server Actions 또는 Edge Functions 호출  
+- 글로벌 상태 불필요; 공용 상태는 React Context 최소 사용
+
+### API 설계 기준
+- RESTful 규칙 준수(`/api/reservations/[id]`)  
+- HTTP 메서드 정확히 매핑: GET(조회), POST(생성), PUT/PATCH(수정), DELETE(삭제)  
+- 응답 구조 통일 `{ success: boolean; data?: T; error?: string }`
+
+## 예시 코드 스니펫
+
+```typescript
+// MUST: 서비스 계층 분리
+// domains/reservation/service.ts
+import { supabase } from 'shared/supabaseClient';
+export type ReservationInput = { roomId: string; date: string; count: number };
+
+export async function createReservation(input: ReservationInput) {
+  const { data, error } = await supabase
+    .from('reservations')
+    .insert({ room_id: input.roomId, date: input.date, count: input.count });
+  if (error) throw new Error(error.message);
+  return data;
+}
+```
+
+```typescript
+// MUST NOT: 컴포넌트에서 직접 DB 호출
+// src/app/reserve/page.tsx
+'import { supabase } from 'shared/supabaseClient';
+
+export default async function Page() {
+  // ❌ NG: 프레젠테이션 계층에서 직접 호출
+  const { data } = await supabase.from('reservations').select('*');
+  return <div>{data.length}건 예약</div>;
+}
+```
+
+```typescript
+// MUST: Server Action + 예외 처리
+'use server';
+import { createReservation } from 'domains/reservation/service';
+
+export async function POST(formData: FormData) {
+  try {
+    const payload = Object.fromEntries(formData) as any;
+    const reservation = await createReservation(payload);
+    return new Response(JSON.stringify({ success: true, data: reservation }), {
+      status: 200,
+    });
+  } catch (e) {
+    console.error(e);
+    return new Response(JSON.stringify({ success: false, error: e.message }), {
+      status: 500,
+    });
+  }
+}
+```
+
+```typescript
+// MUST NOT: any 사용
+function process(data: any) {
+  // ❌ NG: any
+  console.log(data);
+}
+// ✅ 제네릭 활용
+function process<T>(data: T): T {
+  console.log(data);
+  return data;
+}
+```

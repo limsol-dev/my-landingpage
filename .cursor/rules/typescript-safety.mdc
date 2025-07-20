@@ -1,0 +1,265 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🔒 TypeScript Safety & Type Excellence
+
+## 📋 CONTEXT & CONSTRAINTS
+Korean pension booking system requiring strict type safety for reservation data, pricing calculations, and user inputs.
+**CRITICAL**: All types must prevent runtime errors in production Korean environment.
+
+## ✅ MUST DO - Type Safety Imperatives
+
+### 1. Domain Type Architecture (FOLLOW EXACTLY)
+Reference [types/reservation.ts](mdc:types/reservation.ts) as the gold standard:
+
+```typescript
+// ✅ MANDATORY: Base types first, then composed types
+export type ReservationBase = {
+  checkIn: Date | undefined      // ✅ Explicit undefined for form states
+  checkOut: Date | undefined
+  adults: number
+  children: number
+  totalGuests: number
+}
+
+// ✅ CRITICAL: Composed types using intersection
+export type ReservationInfo = ReservationBase & {
+  bbq: BBQOption                 // Korean BBQ specific
+  meal: MealOption              // Korean meal options
+  transport: TransportOption    // Bus rental for Korean groups
+  experience: ExperienceOption  // Farm experience
+  extra: ExtraOption           // Laundry, etc.
+}
+
+// ✅ MANDATORY: Validation functions with explicit return types
+export const validateReservation = (
+  reservation: ReservationInfo
+): string[] => {
+  const errors: string[] = []
+  
+  // Korean-specific validations
+  if (!reservation.checkIn) {
+    errors.push('체크인 날짜를 선택해주세요.')
+  }
+  if (!reservation.checkOut) {
+    errors.push('체크아웃 날짜를 선택해주세요.')
+  }
+  
+  return errors
+}
+```
+
+### 2. API Response Types (NON-NEGOTIABLE)
+```typescript
+// ✅ CRITICAL: All API responses must be typed
+interface APIResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string        // Korean error messages
+  code?: string          // Error codes for Korean localization
+}
+
+// ✅ MANDATORY: Specific response types
+interface ReservationResponse extends APIResponse<ReservationInfo> {
+  reservationId?: string
+  paymentUrl?: string    // Korean payment gateway
+}
+
+// ✅ CRITICAL: Error handling with Korean messages
+type KoreanErrorCode = 
+  | 'INVALID_DATE'       // '날짜가 올바르지 않습니다'
+  | 'FULLY_BOOKED'       // '예약이 마감되었습니다'
+  | 'INVALID_PHONE'      // '연락처 형식이 올바르지 않습니다'
+  | 'PAYMENT_FAILED'     // '결제에 실패했습니다'
+
+interface ErrorResponse extends APIResponse<never> {
+  code: KoreanErrorCode
+  koreanMessage: string
+}
+```
+
+### 3. Form Validation with Zod (ABSOLUTE REQUIREMENT)
+```typescript
+import { z } from 'zod'
+
+// ✅ MANDATORY: Korean phone number schema
+const koreanPhoneSchema = z
+  .string()
+  .regex(/^010-\d{4}-\d{4}$/, '올바른 휴대폰 번호를 입력해주세요 (010-0000-0000)')
+
+// ✅ CRITICAL: Korean name validation
+const koreanNameSchema = z
+  .string()
+  .min(2, '이름은 2글자 이상이어야 합니다')
+  .max(10, '이름은 10글자 이하여야 합니다')
+  .regex(/^[가-힣a-zA-Z\s]+$/, '한글 또는 영문만 입력 가능합니다')
+
+// ✅ MANDATORY: Reservation form schema
+const reservationFormSchema = z.object({
+  customerName: koreanNameSchema,
+  customerPhone: koreanPhoneSchema,
+  customerEmail: z.string().email('올바른 이메일 주소를 입력해주세요').optional(),
+  checkIn: z.date({ required_error: '체크인 날짜를 선택해주세요' }),
+  checkOut: z.date({ required_error: '체크아웃 날짜를 선택해주세요' }),
+  totalGuests: z.number().min(1, '최소 1명 이상이어야 합니다').max(20, '최대 20명까지 예약 가능합니다'),
+  specialRequests: z.string().max(500, '특별 요청사항은 500자 이하로 입력해주세요').optional()
+}).refine(
+  (data) => data.checkOut > data.checkIn,
+  {
+    message: '체크아웃 날짜는 체크인 날짜 이후여야 합니다',
+    path: ['checkOut']
+  }
+)
+
+// ✅ CRITICAL: Infer type from schema
+type ReservationFormData = z.infer<typeof reservationFormSchema>
+```
+
+### 4. Utility Types Excellence (FOLLOW STRICTLY)
+```typescript
+// ✅ MANDATORY: Use built-in utility types
+type PartialReservation = Partial<ReservationInfo>
+type RequiredReservationFields = Pick<ReservationInfo, 'checkIn' | 'checkOut' | 'totalGuests'>
+type OptionalReservationFields = Omit<ReservationInfo, 'checkIn' | 'checkOut'>
+
+// ✅ CRITICAL: Korean-specific utility types
+type KoreanFormField = {
+  label: string          // Korean label
+  placeholder: string    // Korean placeholder
+  errorMessage?: string  // Korean error message
+  required: boolean
+}
+
+// ✅ MANDATORY: Component prop types
+type BookingFormProps = {
+  initialData?: PartialReservation
+  onSubmit: (data: ReservationFormData) => Promise<void>
+  onCancel: () => void
+  disabled?: boolean
+  className?: string
+}
+
+// ✅ CRITICAL: Event handler types
+type BookingEventHandlers = {
+  onDateChange: (field: 'checkIn' | 'checkOut', date: Date | undefined) => void
+  onGuestCountChange: (count: number) => void
+  onPhoneChange: (phone: string) => void
+}
+```
+
+### 5. Type Guards & Runtime Validation (ESSENTIAL)
+```typescript
+// ✅ MANDATORY: Type guards for API responses
+function isValidReservationResponse(
+  response: unknown
+): response is APIResponse<ReservationInfo> {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'success' in response &&
+    typeof (response as any).success === 'boolean'
+  )
+}
+
+// ✅ CRITICAL: Korean date validation
+function isValidKoreanDate(date: unknown): date is Date {
+  if (!(date instanceof Date)) return false
+  if (isNaN(date.getTime())) return false
+  
+  // Korean business rule: no past dates
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date >= today
+}
+
+// ✅ MANDATORY: Use type guards in API calls
+const handleReservationSubmit = async (data: ReservationFormData) => {
+  try {
+    const response = await fetch('/api/reservations/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    
+    const result = await response.json()
+    
+    if (!isValidReservationResponse(result)) {
+      throw new Error('Invalid API response format')
+    }
+    
+    if (!result.success) {
+      throw new Error(result.error || '예약 처리 중 오류가 발생했습니다')
+    }
+    
+    // Type-safe access to result.data
+    console.log('예약 완료:', result.data?.checkIn)
+  } catch (error) {
+    console.error('예약 오류:', error)
+  }
+}
+```
+
+## ❌ NEVER DO - Type Safety Violations
+
+### 🚫 FORBIDDEN Type Patterns
+```typescript
+// ❌ NEVER: Use 'any' type
+const handleData = (data: any) => {  // FORBIDDEN
+  return data.whatever.property
+}
+
+// ❌ NEVER: Unchecked type assertions
+const reservation = apiResponse as ReservationInfo  // DANGEROUS
+
+// ❌ NEVER: Implicit return types for public APIs
+const calculatePrice = (reservation) => {  // Missing return type
+  return reservation.totalGuests * 50000
+}
+
+// ❌ NEVER: Object or Function types
+const props: Object = { name: 'test' }      // Too generic
+const callback: Function = () => {}         // Too generic
+
+// ❌ NEVER: Ignore TypeScript errors
+// @ts-ignore                               // FORBIDDEN without explanation
+const result = dangerousOperation()
+
+// ❌ NEVER: Mutate readonly types
+interface ReadonlyReservation {
+  readonly checkIn: Date
+}
+const reservation: ReadonlyReservation = { checkIn: new Date() }
+reservation.checkIn = new Date()  // FORBIDDEN
+```
+
+### 🚫 FORBIDDEN API Patterns
+```typescript
+// ❌ NEVER: Untyped API calls
+const response = await fetch('/api/reservations')
+const data = await response.json()  // Unknown type
+console.log(data.whatever)         // Runtime error risk
+
+// ❌ NEVER: Missing error handling
+const reservation = await createReservation(data)  // No try/catch
+
+// ❌ NEVER: Hardcoded Korean text in types
+type ErrorMessage = '예약에 실패했습니다'  // Use constants or i18n
+```
+
+---
+
+## 🎯 TYPE SAFETY CHECKLIST
+Before submitting any TypeScript code:
+- [ ] All function parameters and return types are explicitly typed
+- [ ] API responses use proper generic types
+- [ ] Korean text validation uses Zod schemas
+- [ ] Type guards are used for runtime validation
+- [ ] No `any`, `Object`, or `Function` types
+- [ ] Error handling includes Korean-specific error codes
+- [ ] Form data uses inferred Zod types
+
+**Reference Implementation:** [types/reservation.ts](mdc:types/reservation.ts) for all type definitions
+

@@ -2,35 +2,46 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AdminPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, loading, isAdmin, isSuperAdmin } = useAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        // 인증된 경우 대시보드로 이동
-        router.push('/admin/dashboard');
+    if (!loading) {
+      if (!isAuthenticated) {
+        // 메인 로그인 페이지로 리다이렉트
+        router.push('/login?redirect=/admin');
+      } else if (!isAdmin && !isSuperAdmin) {
+        // 관리자 권한이 없으면 메인 페이지로
+        alert('관리자 권한이 필요합니다.');
+        router.push('/');
       } else {
-        // 인증되지 않은 경우 로그인 페이지로 이동
-        router.push('/admin/login');
+        // 관리자 권한이 있으면 대시보드로
+        router.push('/admin/dashboard');
       }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, loading, isAdmin, isSuperAdmin, router]);
 
   // 로딩 중일 때 표시할 내용
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">로딩 중...</p>
+          <p className="mt-4 text-gray-600">권한 확인 중...</p>
         </div>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-gray-600">관리자 페이지로 이동 중...</p>
+      </div>
+    </div>
+  );
 } 

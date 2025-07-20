@@ -1,18 +1,22 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuth as useSupabaseAuth } from '@/hooks/use-auth'
+import { useAuth as useMainAuth } from '@/hooks/use-auth'
+import { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   isAdmin: boolean
   isSuperAdmin: boolean
-  user: any
+  user: User | null
   profile: any
-  login: (email: string, password: string) => Promise<boolean>
+  session: Session | null
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  loginWithOAuth: (provider: 'google' | 'kakao') => Promise<{ success: boolean; error?: string }>
   logout: () => Promise<void>
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>
   checkAuth: () => Promise<void>
 }
 
@@ -21,82 +25,96 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { 
-    user, 
-    profile, 
-    loading, 
-    signIn, 
-    signOut,
-    isAdmin: supabaseIsAdmin,
-    isSuperAdmin: supabaseIsSuperAdmin
-  } = useSupabaseAuth()
+  
+  // 메인 사이트의 인증 상태 사용
+  const mainAuth = useMainAuth()
+  
+  // 관리자 권한 체크를 위한 로컬 상태
+  const [isAdminVerified, setIsAdminVerified] = useState(false)
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(true)
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  // Supabase Auth 상태를 로컬 상태와 동기화
+  // 관리자 권한 확인
   useEffect(() => {
-    if (user && profile) {
-      setIsAuthenticated(true)
-    } else {
-      setIsAuthenticated(false)
-    }
-  }, [user, profile])
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const { error } = await signIn(email, password)
-      
-      if (error) {
-        console.error('관리자 로그인 오류:', error)
-        return false
+    const checkAdminPermissions = async () => {
+      if (!mainAuth.loading && mainAuth.user && mainAuth.profile) {
+        const hasAdminRole = mainAuth.profile.role === 'admin' || mainAuth.profile.role === 'super_admin'
+        
+        if (hasAdminRole) {
+          console.log('✅ 관리자 권한 확인됨:', mainAuth.profile.role)
+          setIsAdminVerified(true)
+        } else {
+          console.error('❌ 관리자 권한 없음:', mainAuth.profile.role)
+          // 권한이 없으면 메인 사이트로 리다이렉트
+          router.push('/')
+          return
+        }
       }
+      setIsCheckingAdmin(false)
+    }
 
-      return true
-    } catch (error) {
-      console.error('관리자 로그인 예외:', error)
-      return false
+    checkAdminPermissions()
+  }, [mainAuth.loading, mainAuth.user, mainAuth.profile, router])
+
+  // 인증 상태에 따른 리다이렉트
+  useEffect(() => {
+    if (!isCheckingAdmin && pathname?.startsWith('/admin')) {
+      if (!mainAuth.isAuthenticated && pathname !== '/admin/login') {
+        // 메인 로그인 페이지로 리다이렉트 (관리자 로그인 대신)
+        router.push('/login?redirect=/admin/dashboard')
+      } else if (mainAuth.isAuthenticated && isAdminVerified && pathname === '/admin/login') {
+        router.push('/admin/dashboard')
+      }
+    }
+  }, [mainAuth.isAuthenticated, isCheckingAdmin, isAdminVerified, pathname, router])
+
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    // 메인 사이트의 로그인 함수 사용
+    return await mainAuth.signIn(email, password)
+  }
+
+  const loginWithOAuth = async (provider: 'google' | 'kakao'): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await mainAuth.signInWithGoogle()
+      if (result.error) {
+        return { success: false, error: result.error.message }
+      }
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: `${provider} 로그인 중 오류가 발생했습니다.` }
     }
   }
 
   const logout = async () => {
-    try {
-      await signOut()
-      setIsAuthenticated(false)
-      router.push('/admin/login')
-    } catch (error) {
-      console.error('로그아웃 오류:', error)
+    await mainAuth.signOut()
+    router.push('/')
+  }
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    const result = await mainAuth.resetPassword(email)
+    if (result.error) {
+      return { success: false, error: result.error.message }
     }
+    return { success: true }
   }
 
   const checkAuth = async () => {
-    // Supabase Auth 훅에서 자동으로 처리됨
+    // 메인 인증 상태는 자동으로 관리됨
+    return
   }
-
-  // 인증되지 않은 상태에서 관리자 페이지 접근 시 리다이렉트
-  useEffect(() => {
-    if (!loading && !isAuthenticated && pathname !== '/admin/login') {
-      router.push('/admin/login')
-    }
-  }, [isAuthenticated, loading, pathname, router])
-
-  // 관리자 권한이 없는 사용자 리다이렉트
-  useEffect(() => {
-    if (!loading && isAuthenticated && profile && !supabaseIsAdmin && pathname !== '/admin/login') {
-      console.warn('관리자 권한이 없는 사용자의 관리자 페이지 접근 시도')
-      router.push('/') // 메인 페이지로 리다이렉트
-    }
-  }, [isAuthenticated, loading, profile, supabaseIsAdmin, pathname, router])
 
   return (
     <AuthContext.Provider value={{
-      isAuthenticated,
-      isLoading: loading,
-      isAdmin: supabaseIsAdmin,
-      isSuperAdmin: supabaseIsSuperAdmin,
-      user,
-      profile,
+      isAuthenticated: mainAuth.isAuthenticated && isAdminVerified,
+      isLoading: mainAuth.loading || isCheckingAdmin,
+      isAdmin: mainAuth.isAdmin,
+      isSuperAdmin: mainAuth.isSuperAdmin,
+      user: mainAuth.user,
+      profile: mainAuth.profile,
+      session: mainAuth.session,
       login,
+      loginWithOAuth,
       logout,
+      resetPassword,
       checkAuth
     }}>
       {children}

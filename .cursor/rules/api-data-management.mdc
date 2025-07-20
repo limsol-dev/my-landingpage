@@ -1,0 +1,188 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🌐 API & Data Management Excellence
+
+## 📋 CONTEXT & SCOPE
+Korean pension booking system with Supabase backend, API routes, and Korean payment integration.
+**CRITICAL**: All API patterns must handle Korean data formats and error messages.
+
+## ✅ MUST DO - API Architecture Imperatives
+
+### 1. API Route Structure (FOLLOW EXACTLY)
+Reference [app/api/reservations/route.ts](mdc:app/api/reservations/route.ts):
+
+```typescript
+// ✅ MANDATORY: API route pattern
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// ✅ CRITICAL: Korean validation schema
+const createReservationSchema = z.object({
+  customerName: z.string().min(2, '이름은 2글자 이상이어야 합니다'),
+  customerPhone: z.string().regex(/^010-\d{4}-\d{4}$/, '올바른 연락처를 입력해주세요'),
+  checkIn: z.string().datetime('체크인 날짜를 확인해주세요'),
+  checkOut: z.string().datetime('체크아웃 날짜를 확인해주세요'),
+  totalGuests: z.number().min(1, '최소 1명 이상이어야 합니다')
+})
+
+// ✅ MANDATORY: API response type
+interface APIResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  koreanMessage?: string
+  code?: string
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    
+    // ✅ MANDATORY: Validate with Zod
+    const validatedData = createReservationSchema.parse(body)
+    
+    // Database operation here...
+    const result = await createReservation(validatedData)
+    
+    // ✅ CRITICAL: Korean response format
+    return NextResponse.json({
+      success: true,
+      data: result,
+      koreanMessage: '예약이 성공적으로 생성되었습니다'
+    } as APIResponse<ReservationInfo>)
+    
+  } catch (error) {
+    // ✅ MANDATORY: Korean error handling
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({
+        success: false,
+        error: 'VALIDATION_ERROR',
+        koreanMessage: '입력 정보를 확인해주세요',
+        details: error.errors
+      }, { status: 400 })
+    }
+    
+    return NextResponse.json({
+      success: false,
+      error: 'INTERNAL_ERROR',
+      koreanMessage: '서버 오류가 발생했습니다'
+    }, { status: 500 })
+  }
+}
+```
+
+### 2. Supabase Integration Pattern (REQUIRED)
+```typescript
+// ✅ MANDATORY: Supabase client setup with types
+import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/supabase'
+
+const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+// ✅ CRITICAL: Korean database operations with proper typing
+export async function createReservation(data: ReservationFormData): Promise<ReservationInfo> {
+  const { data: reservation, error } = await supabase
+    .from('reservations')
+    .insert({
+      customer_name: data.customerName,
+      customer_phone: data.customerPhone,
+      check_in: data.checkIn.toISOString(),
+      check_out: data.checkOut.toISOString(),
+      total_guests: data.totalGuests,
+      created_at: new Date().toISOString()
+    })
+    .select()
+    .single()
+
+  if (error) {
+    throw new Error(`예약 생성 실패: ${error.message}`)
+  }
+
+  return reservation as ReservationInfo
+}
+```
+
+### 3. Error Code Management (KOREAN-SPECIFIC)
+```typescript
+// ✅ CRITICAL: Korean error code system
+export const KOREAN_ERROR_CODES = {
+  VALIDATION_ERROR: '입력 정보가 올바르지 않습니다',
+  DUPLICATE_BOOKING: '이미 예약된 날짜입니다',
+  FULLY_BOOKED: '예약이 마감되었습니다',
+  INVALID_PHONE: '연락처 형식이 올바르지 않습니다',
+  INVALID_DATE: '날짜가 올바르지 않습니다',
+  PAYMENT_FAILED: '결제에 실패했습니다',
+  UNAUTHORIZED: '인증이 필요합니다',
+  FORBIDDEN: '접근 권한이 없습니다',
+  INTERNAL_ERROR: '서버 오류가 발생했습니다'
+} as const
+
+export type KoreanErrorCode = keyof typeof KOREAN_ERROR_CODES
+
+export function createErrorResponse(
+  code: KoreanErrorCode,
+  details?: unknown
+): APIResponse<never> {
+  return {
+    success: false,
+    error: code,
+    koreanMessage: KOREAN_ERROR_CODES[code],
+    ...(details && { details })
+  }
+}
+```
+
+## ❌ NEVER DO - API Anti-Patterns
+
+### 🚫 FORBIDDEN API Patterns
+```typescript
+// ❌ NEVER: Unvalidated API input
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  // Direct use without validation - DANGEROUS
+  const result = await createReservation(body)
+}
+
+// ❌ NEVER: Generic error responses
+return NextResponse.json({ error: 'Something went wrong' })
+
+// ❌ NEVER: Expose internal errors
+catch (error) {
+  return NextResponse.json({ error: error.stack })  // Security risk
+}
+
+// ❌ NEVER: Untyped database operations
+const { data } = await supabase.from('reservations').select()  // No typing
+```
+
+### 🚫 FORBIDDEN Type Patterns
+```typescript
+// ❌ NEVER: any type for API responses
+const response: any = await fetch('/api/reservations')
+
+// ❌ NEVER: Missing error handling
+const data = await response.json()  // No try/catch
+
+// ❌ NEVER: Hardcoded Korean messages in types
+type ErrorMessage = '예약에 실패했습니다'  // Use constants
+```
+
+---
+
+## 🎯 API CHECKLIST
+Before deploying any API:
+- [ ] Input validation with Zod
+- [ ] Korean error messages with proper codes
+- [ ] Proper HTTP status codes
+- [ ] Type-safe database operations  
+- [ ] Error logging for debugging
+- [ ] Response type interfaces
+- [ ] Korean localization support
+
+

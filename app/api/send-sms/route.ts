@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     }
 
     // SMS 메시지 구성
-    const message = `[달팽이아지트펜션 예약문의]
+    const message = `[달팽이 아지트 펜션 예약문의]
 이름: ${name}
 연락처: ${contact}
 체크인: ${checkIn}

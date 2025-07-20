@@ -1,90 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
-import { ReservationUpdate } from '@/types/supabase'
-import { formatReservationFromSupabase } from '@/lib/supabase-utils'
+import { getAuthenticatedUser, isAdmin } from '@/lib/auth'
+import { PrismaClient } from '@prisma/client'
+import { z } from 'zod'
 
-interface ReservationUpdateData {
-  reservationId: string
-  status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
-  paymentStatus?: 'pending' | 'partial' | 'completed'
-  confirmedDate?: string
-  updatedAt?: string
-  customerName?: string
-  phone?: string
-  email?: string
-  participants?: number
-  programType?: string
-  totalPrice?: number
-  startDate?: string
-  endDate?: string
-  referrer?: string
-  specialRequests?: string
-}
+const prisma = new PrismaClient()
+
+const updateReservationSchema = z.object({
+  id: z.string(),
+  status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
+  customerName: z.string().optional(),
+  customerPhone: z.string().optional(),
+  customerEmail: z.string().email().optional(),
+  totalPrice: z.number().optional(),
+  programId: z.string().optional()
+})
 
 export async function PUT(request: NextRequest) {
   try {
-    const updateData: ReservationUpdateData = await request.json()
-    console.log('예약 업데이트 요청:', updateData)
-
-    // Supabase 업데이트 데이터 준비
-    const supabaseUpdateData: ReservationUpdate = {
-      updated_at: new Date().toISOString()
+    // 관리자 권한 확인
+    const user = await getAuthenticatedUser(request)
+    
+    if (!user || !isAdmin(user)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: '관리자 권한이 필요합니다' 
+        },
+        { status: 403 }
+      )
     }
 
-    // 필드 매핑
-    if (updateData.status) supabaseUpdateData.status = updateData.status
-    if (updateData.paymentStatus) supabaseUpdateData.payment_status = updateData.paymentStatus
-    if (updateData.confirmedDate) supabaseUpdateData.confirmed_date = updateData.confirmedDate
-    if (updateData.customerName) supabaseUpdateData.customer_name = updateData.customerName
-    if (updateData.phone) supabaseUpdateData.phone = updateData.phone
-    if (updateData.email) supabaseUpdateData.email = updateData.email
-    if (updateData.participants) supabaseUpdateData.participants = updateData.participants
-    if (updateData.programType) supabaseUpdateData.program_type = updateData.programType
-    if (updateData.totalPrice) supabaseUpdateData.total_price = updateData.totalPrice
-    if (updateData.startDate) supabaseUpdateData.start_date = updateData.startDate
-    if (updateData.endDate) supabaseUpdateData.end_date = updateData.endDate
-    if (updateData.referrer) supabaseUpdateData.referrer = updateData.referrer
-    if (updateData.specialRequests) supabaseUpdateData.special_requests = updateData.specialRequests
+    const body = await request.json()
+    const { id, ...updateData } = updateReservationSchema.parse(body)
 
-    // Supabase에서 예약 업데이트
-    const { data: updatedReservation, error } = await supabaseAdmin
-      .from('reservations')
-      .update(supabaseUpdateData)
-      .eq('id', updateData.reservationId)
-      .select()
-      .single()
+    // 예약 존재 여부 확인
+    const existingReservation = await prisma.reservation.findUnique({
+      where: { id }
+    })
 
-    if (error) {
-      console.error('Supabase 업데이트 오류:', error)
-      
-      if (error.code === 'PGRST116') {
-        return NextResponse.json(
-          { success: false, error: '예약을 찾을 수 없습니다.' },
-          { status: 404 }
-        )
-      }
-      
-      throw new Error(`데이터베이스 업데이트 실패: ${error.message}`)
+    if (!existingReservation) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: '예약을 찾을 수 없습니다' 
+        },
+        { status: 404 }
+      )
     }
 
-    console.log('예약 업데이트 완료 (Supabase):', updatedReservation.id)
+    // 예약 업데이트
+    const updatedReservation = await prisma.reservation.update({
+      where: { id },
+      data: updateData
+    })
 
-    // supabase-utils 함수를 사용하여 응답 데이터 변환
-    const responseReservation = formatReservationFromSupabase(updatedReservation)
+    console.log('예약 업데이트 완료:', updatedReservation.id)
 
     return NextResponse.json({
       success: true,
-      message: '예약이 성공적으로 업데이트되었습니다.',
-      reservation: responseReservation
+      message: '예약이 성공적으로 업데이트되었습니다',
+      reservation: updatedReservation
     })
 
-  } catch (error) {
-    console.error('예약 업데이트 중 오류:', error)
+  } catch (error: any) {
+    console.error('예약 업데이트 API 오류:', error)
+    
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: error.errors[0].message 
+        },
+        { status: 400 }
+      )
+    }
+
     return NextResponse.json(
       { 
         success: false, 
-        error: '예약 업데이트 중 오류가 발생했습니다.',
-        details: error instanceof Error ? error.message : '알 수 없는 오류'
+        error: '예약 업데이트에 실패했습니다' 
       },
       { status: 500 }
     )

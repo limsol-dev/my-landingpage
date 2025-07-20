@@ -1,0 +1,111 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 🏠 Korean Pension Booking System - Master Rules
+
+## 📋 PROJECT CONTEXT
+**달팽이 아지트 펜션** - Korean pension booking platform built with Next.js 15 + TypeScript + Tailwind CSS + shadcn/ui
+**MISSION**: Create a seamless Korean booking experience with type safety and performance excellence.
+
+## 🎯 CORE PRINCIPLES (NON-NEGOTIABLE)
+
+### 1. Korean-First Development
+- **ALL** text must support Korean localization
+- **ALL** validation uses Korean error messages  
+- **ALL** date/phone formats follow Korean standards
+- **ALL** UX patterns optimize for Korean mobile usage
+
+### 2. Type Safety Excellence
+- **ZERO** `any` types in production code
+- **ALL** API responses must be properly typed
+- **ALL** forms use Zod validation with Korean messages
+- **ALL** components use proper TypeScript interfaces
+
+### 3. shadcn/ui + CVA Pattern Consistency
+- **ALL** UI components follow [components/ui/table.tsx](mdc:components/ui/table.tsx) pattern
+- **ALL** styling uses Class Variance Authority (CVA)
+- **ALL** components support forwardRef and displayName
+- **ALL** variants defined upfront with Korean brand colors
+
+### 4. Performance & Accessibility
+- **ALL** images use Next.js Image optimization
+- **ALL** components support Korean screen readers
+- **ALL** imports use tree-shaking patterns
+- **ALL** responsive design follows mobile-first Korean UX
+
+## 🚨 CRITICAL SUCCESS FACTORS
+
+### Architecture Decisions
+```typescript
+✅ ALWAYS: Use @ alias imports from [tsconfig.json](mdc:tsconfig.json)
+✅ ALWAYS: Follow App Router structure in app/ directory
+✅ ALWAYS: Place reusable components in components/ directory
+❌ NEVER: Mix Pages Router with App Router patterns
+❌ NEVER: Use relative imports beyond one level
+```
+
+### Korean Data Patterns
+```typescript
+✅ ALWAYS: Validate Korean phone numbers: /^010-\d{4}-\d{4}$/
+✅ ALWAYS: Support Korean names: /^[가-힣a-zA-Z\s]+$/
+✅ ALWAYS: Use Korean date formats with date-fns
+❌ NEVER: Hardcode Korean text without i18n consideration
+❌ NEVER: Ignore Korean cultural UX patterns
+```
+
+### Component Quality Gates
+```typescript
+✅ ALWAYS: Use forwardRef for UI components
+✅ ALWAYS: Set displayName for debugging
+✅ ALWAYS: Support className prop for styling flexibility
+✅ ALWAYS: Use CVA for variant management
+❌ NEVER: Create components without proper TypeScript interfaces
+❌ NEVER: Use inline styles instead of Tailwind classes
+```
+
+## 🔗 REFERENCE IMPLEMENTATIONS
+
+### **Gold Standard Files** (Study These Patterns)
+- **Architecture**: [app/page.tsx](mdc:app/page.tsx) - Main landing page structure
+- **Components**: [components/ui/button.tsx](mdc:components/ui/button.tsx) - Perfect CVA pattern
+- **Types**: [types/reservation.ts](mdc:types/reservation.ts) - Domain type definitions
+- **Styling**: [app/globals.css](mdc:app/globals.css) - Design system foundation
+- **State**: [store/useBookingStore.ts](mdc:store/useBookingStore.ts) - Zustand patterns
+
+### **Korean Business Logic Examples**
+- Korean form validation in Hero component
+- Korean phone number regex patterns
+- Korean date handling with proper timezone
+- Korean payment gateway integration
+- Korean error message consistency
+
+## 🎯 QUALITY ASSURANCE CHECKLIST
+
+Before ANY code commit, verify:
+- [ ] All TypeScript errors resolved (no `any` types)
+- [ ] All Korean text properly localized  
+- [ ] All components follow shadcn/ui + CVA patterns
+- [ ] All imports use @ alias (no relative paths)
+- [ ] All responsive design works on Korean mobile devices
+- [ ] All forms validate Korean data formats
+- [ ] All API responses include Korean error messages
+- [ ] All images use Next.js Image optimization
+
+## 🚨 EMERGENCY DEBUGGING GUIDE
+
+**If TypeScript errors**: Check [typescript-safety.mdc](mdc:.cursor/rules/typescript-safety.mdc)
+**If styling issues**: Reference [styling-design-system.mdc](mdc:.cursor/rules/styling-design-system.mdc)  
+**If component patterns wrong**: Study [component-patterns.mdc](mdc:.cursor/rules/component-patterns.mdc)
+**If architecture unclear**: Review [architecture-patterns.mdc](mdc:.cursor/rules/architecture-patterns.mdc)
+**If API problems**: Check [api-data-management.mdc](mdc:.cursor/rules/api-data-management.mdc)
+**If performance issues**: Reference [performance-optimization.mdc](mdc:.cursor/rules/performance-optimization.mdc)
+
+---
+
+## 💡 SUCCESS MANTRA
+**"Korean-First, Type-Safe, Performance-Optimized, Accessible"**
+
+Every line of code must serve Korean pension guests with excellence.
+

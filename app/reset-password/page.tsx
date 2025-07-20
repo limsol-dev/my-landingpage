@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { Eye, EyeOff, CheckCircle } from 'lucide-react'
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -213,15 +213,15 @@ export default function ResetPasswordPage() {
                       )}
                     </button>
                   </div>
-                  {confirmPassword && (
-                    <p className={`text-xs ${
-                      password === confirmPassword ? 'text-green-600' : 'text-red-500'
-                    }`}>
-                      {password === confirmPassword ? '✓ 비밀번호가 일치합니다' : '✗ 비밀번호가 일치하지 않습니다'}
-                    </p>
-                  )}
+                  <div className="text-xs text-gray-500">
+                    {confirmPassword && (
+                      <span className={password === confirmPassword ? 'text-green-600' : 'text-red-600'}>
+                        {password === confirmPassword ? '✓ 비밀번호가 일치합니다' : '✗ 비밀번호가 일치하지 않습니다'}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                
+
                 <Button 
                   type="submit" 
                   className="w-full" 
@@ -229,20 +229,32 @@ export default function ResetPasswordPage() {
                 >
                   {isLoading ? '재설정 중...' : '비밀번호 재설정'}
                 </Button>
-
-                <div className="text-center">
-                  <Link 
-                    href="/login" 
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                  >
-                    로그인 페이지로 돌아가기
-                  </Link>
-                </div>
               </form>
             )}
+            
+            <div className="mt-6 text-center">
+              <Link href="/login" className="text-sm text-blue-600 hover:text-blue-500">
+                로그인 페이지로 돌아가기
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">페이지를 로드하는 중...</p>
+        </div>
+      </div>
+    }>
+      <ResetPasswordContent />
+    </Suspense>
   )
 } 

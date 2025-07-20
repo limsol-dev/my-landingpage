@@ -1,0 +1,859 @@
+# 펜션 예약 시스템 - 데이터 플로우 및 데이터베이스 스키마
+
+## 1. 시스템 개요
+
+### 1.1 핵심 도메인
+- **사용자 관리**: 고객, 모임장, 관리자, 파트너
+- **예약 관리**: 객실 예약, 프로그램 예약, 통합 예약
+- **결제 관리**: 결제 처리, 환불, 정산
+- **콘텐츠 관리**: 객실, 프로그램, 파트너
+- **알림 관리**: SMS, 카카오톡, 이메일 알림
+- **쿠폰 관리**: 할인 쿠폰, 프로모션
+
+### 1.2 데이터 플로우 아키텍처
+```
+[고객 웹] → [Next.js API] → [Supabase Edge Functions] → [PostgreSQL]
+    ↓              ↓                    ↓                    ↓
+[모임장 콘솔] → [실시간 동기화] → [비즈니스 로직] → [RLS 보안 정책]
+    ↓              ↓                    ↓                    ↓
+[관리자 페이지] → [WebSocket] → [외부 API 연동] → [데이터 백업]
+```
+
+## 2. 핵심 데이터 플로우
+
+### 2.1 사용자 등록 및 인증 플로우
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Web Client
+    participant A as Supabase Auth
+    participant D as Database
+    
+    U->>W: 회원가입 요청
+    W->>A: 인증 정보 전송
+    A->>D: 사용자 생성 (auth.users)
+    D->>D: 프로필 생성 (user_profiles)
+    D->>W: 사용자 정보 반환
+    W->>U: 회원가입 완료
+```
+
+### 2.2 예약 생성 플로우
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Web Client
+    participant E as Edge Function
+    participant D as Database
+    participant P as Payment Gateway
+    
+    U->>W: 예약 요청
+    W->>E: 예약 데이터 전송
+    E->>D: 재고 확인
+    D->>E: 가용성 응답
+    E->>D: 예약 생성 (임시)
+    E->>P: 결제 요청
+    P->>E: 결제 결과
+    E->>D: 예약 확정/취소
+    D->>W: 예약 완료 정보
+    W->>U: 예약 확인
+```
+
+### 2.3 실시간 재고 관리 플로우
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant R as Realtime
+    participant D as Database
+    participant C as Clients
+    
+    A->>D: 재고 업데이트
+    D->>R: 변경 알림
+    R->>C: 실시간 푸시
+    C->>C: UI 업데이트
+```
+
+## 3. 데이터베이스 스키마
+
+### 3.1 사용자 및 권한 관리
+
+#### user_profiles (사용자 프로필)
+```sql
+CREATE TABLE user_profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    full_name VARCHAR(100),
+    phone VARCHAR(20),
+    birth_date DATE,
+    profile_image TEXT,
+    bio TEXT,
+    role user_role_enum DEFAULT 'user' NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    email_verified BOOLEAN DEFAULT false,
+    phone_verified BOOLEAN DEFAULT false,
+    preferences JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    last_login_at TIMESTAMPTZ,
+    login_count INTEGER DEFAULT 0,
+    
+    CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT valid_phone CHECK (phone ~* '^[0-9-+()\\s]+$')
+);
+
+CREATE TYPE user_role_enum AS ENUM ('user', 'group_leader', 'admin', 'super_admin');
+```
+
+#### user_addresses (사용자 주소)
+```sql
+CREATE TABLE user_addresses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    address_type address_type_enum DEFAULT 'home',
+    address_line1 VARCHAR(255) NOT NULL,
+    address_line2 VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100),
+    postal_code VARCHAR(20),
+    country VARCHAR(100) DEFAULT 'South Korea',
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TYPE address_type_enum AS ENUM ('home', 'work', 'billing', 'shipping');
+```
+
+### 3.2 파트너 및 콘텐츠 관리
+
+#### partners (파트너)
+```sql
+CREATE TABLE partners (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    business_type partner_type_enum NOT NULL,
+    description TEXT,
+    contact_name VARCHAR(100),
+    contact_email VARCHAR(255),
+    contact_phone VARCHAR(20),
+    address TEXT,
+    business_license VARCHAR(100),
+    tax_id VARCHAR(50),
+    status partner_status_enum DEFAULT 'active',
+    commission_rate DECIMAL(5,2) DEFAULT 0.00,
+    payment_terms INTEGER DEFAULT 30,
+    contract_start_date DATE,
+    contract_end_date DATE,
+    settings JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_commission_rate CHECK (commission_rate >= 0 AND commission_rate <= 100)
+);
+
+CREATE TYPE partner_type_enum AS ENUM ('accommodation', 'activity', 'food', 'transport');
+CREATE TYPE partner_status_enum AS ENUM ('active', 'inactive', 'pending', 'suspended');
+```
+
+#### rooms (객실)
+```sql
+CREATE TABLE rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    partner_id UUID REFERENCES partners(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    room_type room_type_enum NOT NULL,
+    description TEXT,
+    max_occupancy INTEGER NOT NULL,
+    base_price DECIMAL(10,2) NOT NULL,
+    weekend_price DECIMAL(10,2),
+    holiday_price DECIMAL(10,2),
+    size_sqm DECIMAL(8,2),
+    floor_number INTEGER,
+    amenities TEXT[],
+    images JSONB DEFAULT '[]',
+    availability_calendar JSONB DEFAULT '{}',
+    booking_rules JSONB DEFAULT '{}',
+    cancellation_policy cancellation_policy_enum DEFAULT 'moderate',
+    is_available BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_occupancy CHECK (max_occupancy > 0),
+    CONSTRAINT valid_base_price CHECK (base_price >= 0),
+    CONSTRAINT valid_floor CHECK (floor_number >= 0)
+);
+
+CREATE TYPE room_type_enum AS ENUM ('standard', 'deluxe', 'suite', 'villa', 'pension');
+CREATE TYPE cancellation_policy_enum AS ENUM ('flexible', 'moderate', 'strict', 'super_strict');
+```
+
+#### program_categories (프로그램 카테고리)
+```sql
+CREATE TABLE program_categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    icon VARCHAR(100),
+    color VARCHAR(7),
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### programs (프로그램)
+```sql
+CREATE TABLE programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    category_id UUID REFERENCES program_categories(id) ON DELETE SET NULL,
+    partner_id UUID REFERENCES partners(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    unit program_unit_enum DEFAULT 'per_person',
+    duration_minutes INTEGER,
+    max_participants INTEGER,
+    min_participants INTEGER DEFAULT 1,
+    available_times TIME[],
+    available_days INTEGER[], -- 0=Sunday, 1=Monday, etc.
+    age_restriction JSONB DEFAULT '{}',
+    requirements TEXT[],
+    includes TEXT[],
+    excludes TEXT[],
+    images JSONB DEFAULT '[]',
+    location_info JSONB DEFAULT '{}',
+    booking_deadline_hours INTEGER DEFAULT 24,
+    cancellation_policy cancellation_policy_enum DEFAULT 'moderate',
+    is_available BOOLEAN DEFAULT true,
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_price CHECK (price >= 0),
+    CONSTRAINT valid_participants CHECK (max_participants >= min_participants),
+    CONSTRAINT valid_duration CHECK (duration_minutes > 0)
+);
+
+CREATE TYPE program_unit_enum AS ENUM ('per_person', 'per_group', 'per_hour', 'per_day');
+```
+
+### 3.3 예약 관리
+
+#### reservations (예약)
+```sql
+CREATE TABLE reservations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    reservation_number VARCHAR(20) UNIQUE NOT NULL,
+    check_in_date DATE NOT NULL,
+    check_out_date DATE NOT NULL,
+    guests_adult INTEGER DEFAULT 1,
+    guests_child INTEGER DEFAULT 0,
+    guests_infant INTEGER DEFAULT 0,
+    total_nights INTEGER GENERATED ALWAYS AS (check_out_date - check_in_date) STORED,
+    room_price DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    discount_amount DECIMAL(10,2) DEFAULT 0,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    final_amount DECIMAL(10,2) NOT NULL,
+    status reservation_status_enum DEFAULT 'pending',
+    booking_source booking_source_enum DEFAULT 'web',
+    special_requests TEXT,
+    guest_info JSONB DEFAULT '{}',
+    check_in_time TIME,
+    check_out_time TIME,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    confirmed_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    
+    CONSTRAINT valid_dates CHECK (check_out_date > check_in_date),
+    CONSTRAINT valid_guests CHECK (guests_adult + guests_child + guests_infant > 0),
+    CONSTRAINT valid_amounts CHECK (final_amount >= 0 AND total_amount >= 0)
+);
+
+CREATE TYPE reservation_status_enum AS ENUM ('pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled', 'no_show');
+CREATE TYPE booking_source_enum AS ENUM ('web', 'mobile', 'phone', 'walk_in', 'partner');
+```
+
+#### reservation_programs (예약 프로그램)
+```sql
+CREATE TABLE reservation_programs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reservation_id UUID REFERENCES reservations(id) ON DELETE CASCADE,
+    program_id UUID REFERENCES programs(id) ON DELETE CASCADE,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME,
+    participants_info JSONB DEFAULT '[]',
+    status program_reservation_status_enum DEFAULT 'booked',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_quantity CHECK (quantity > 0),
+    CONSTRAINT valid_price CHECK (unit_price >= 0 AND total_price >= 0),
+    CONSTRAINT valid_scheduled_date CHECK (scheduled_date >= CURRENT_DATE)
+);
+
+CREATE TYPE program_reservation_status_enum AS ENUM ('booked', 'confirmed', 'completed', 'cancelled', 'no_show');
+```
+
+### 3.4 결제 관리
+
+#### payments (결제)
+```sql
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reservation_id UUID REFERENCES reservations(id) ON DELETE CASCADE,
+    payment_method payment_method_enum NOT NULL,
+    payment_gateway payment_gateway_enum NOT NULL,
+    gateway_transaction_id VARCHAR(255),
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'KRW',
+    status payment_status_enum DEFAULT 'pending',
+    payment_date TIMESTAMPTZ,
+    failure_reason TEXT,
+    gateway_response JSONB DEFAULT '{}',
+    refund_amount DECIMAL(10,2) DEFAULT 0,
+    refund_reason TEXT,
+    refunded_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_amount CHECK (amount >= 0),
+    CONSTRAINT valid_refund CHECK (refund_amount >= 0 AND refund_amount <= amount)
+);
+
+CREATE TYPE payment_method_enum AS ENUM ('credit_card', 'debit_card', 'bank_transfer', 'mobile_payment', 'cash');
+CREATE TYPE payment_gateway_enum AS ENUM ('iamport', 'toss', 'kakao_pay', 'naver_pay', 'paypal');
+CREATE TYPE payment_status_enum AS ENUM ('pending', 'processing', 'completed', 'failed', 'cancelled', 'refunded', 'partially_refunded');
+```
+
+#### payment_installments (할부 결제)
+```sql
+CREATE TABLE payment_installments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID REFERENCES payments(id) ON DELETE CASCADE,
+    installment_number INTEGER NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    due_date DATE NOT NULL,
+    paid_date DATE,
+    status installment_status_enum DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_installment_number CHECK (installment_number > 0),
+    CONSTRAINT valid_amount CHECK (amount > 0)
+);
+
+CREATE TYPE installment_status_enum AS ENUM ('pending', 'paid', 'overdue', 'cancelled');
+```
+
+### 3.5 쿠폰 및 프로모션
+
+#### coupons (쿠폰)
+```sql
+CREATE TABLE coupons (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    type coupon_type_enum NOT NULL,
+    value DECIMAL(10,2) NOT NULL,
+    minimum_amount DECIMAL(10,2) DEFAULT 0,
+    maximum_discount DECIMAL(10,2),
+    usage_limit INTEGER,
+    usage_count INTEGER DEFAULT 0,
+    user_usage_limit INTEGER DEFAULT 1,
+    valid_from DATE NOT NULL,
+    valid_until DATE NOT NULL,
+    applicable_to coupon_applicable_enum DEFAULT 'all',
+    applicable_ids UUID[],
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES user_profiles(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_dates CHECK (valid_until >= valid_from),
+    CONSTRAINT valid_value CHECK (value > 0),
+    CONSTRAINT valid_usage_limit CHECK (usage_limit IS NULL OR usage_limit > 0)
+);
+
+CREATE TYPE coupon_type_enum AS ENUM ('fixed_amount', 'percentage', 'free_shipping');
+CREATE TYPE coupon_applicable_enum AS ENUM ('all', 'rooms', 'programs', 'specific_items');
+```
+
+#### coupon_usages (쿠폰 사용 내역)
+```sql
+CREATE TABLE coupon_usages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    coupon_id UUID REFERENCES coupons(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    reservation_id UUID REFERENCES reservations(id) ON DELETE CASCADE,
+    discount_amount DECIMAL(10,2) NOT NULL,
+    used_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_discount_amount CHECK (discount_amount > 0),
+    UNIQUE(coupon_id, reservation_id)
+);
+```
+
+### 3.6 알림 관리
+
+#### notifications (알림)
+```sql
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    type notification_type_enum NOT NULL,
+    channel notification_channel_enum NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    data JSONB DEFAULT '{}',
+    status notification_status_enum DEFAULT 'pending',
+    scheduled_at TIMESTAMPTZ,
+    sent_at TIMESTAMPTZ,
+    read_at TIMESTAMPTZ,
+    error_message TEXT,
+    retry_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_retry_count CHECK (retry_count >= 0)
+);
+
+CREATE TYPE notification_type_enum AS ENUM ('booking_confirmation', 'payment_confirmation', 'check_in_reminder', 'check_out_reminder', 'cancellation', 'promotion', 'system');
+CREATE TYPE notification_channel_enum AS ENUM ('email', 'sms', 'push', 'kakao_talk', 'in_app');
+CREATE TYPE notification_status_enum AS ENUM ('pending', 'sent', 'delivered', 'failed', 'cancelled');
+```
+
+#### notification_templates (알림 템플릿)
+```sql
+CREATE TABLE notification_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    type notification_type_enum NOT NULL,
+    channel notification_channel_enum NOT NULL,
+    subject VARCHAR(255),
+    body TEXT NOT NULL,
+    variables JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(name, type, channel)
+);
+```
+
+### 3.7 리뷰 및 평가
+
+#### reviews (리뷰)
+```sql
+CREATE TABLE reviews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reservation_id UUID REFERENCES reservations(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    room_id UUID REFERENCES rooms(id) ON DELETE CASCADE,
+    overall_rating INTEGER NOT NULL,
+    cleanliness_rating INTEGER,
+    location_rating INTEGER,
+    service_rating INTEGER,
+    value_rating INTEGER,
+    title VARCHAR(255),
+    comment TEXT,
+    images JSONB DEFAULT '[]',
+    is_anonymous BOOLEAN DEFAULT false,
+    is_verified BOOLEAN DEFAULT false,
+    helpful_count INTEGER DEFAULT 0,
+    status review_status_enum DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT valid_overall_rating CHECK (overall_rating >= 1 AND overall_rating <= 5),
+    CONSTRAINT valid_cleanliness_rating CHECK (cleanliness_rating IS NULL OR (cleanliness_rating >= 1 AND cleanliness_rating <= 5)),
+    CONSTRAINT valid_location_rating CHECK (location_rating IS NULL OR (location_rating >= 1 AND location_rating <= 5)),
+    CONSTRAINT valid_service_rating CHECK (service_rating IS NULL OR (service_rating >= 1 AND service_rating <= 5)),
+    CONSTRAINT valid_value_rating CHECK (value_rating IS NULL OR (value_rating >= 1 AND value_rating <= 5)),
+    UNIQUE(reservation_id, user_id)
+);
+
+CREATE TYPE review_status_enum AS ENUM ('pending', 'approved', 'rejected', 'hidden');
+```
+
+#### review_responses (리뷰 응답)
+```sql
+CREATE TABLE review_responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    review_id UUID REFERENCES reviews(id) ON DELETE CASCADE,
+    responder_id UUID REFERENCES user_profiles(id) ON DELETE CASCADE,
+    response TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 3.8 분석 및 로깅
+
+#### analytics_events (분석 이벤트)
+```sql
+CREATE TABLE analytics_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_type VARCHAR(100) NOT NULL,
+    user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+    session_id VARCHAR(255),
+    properties JSONB DEFAULT '{}',
+    page_url TEXT,
+    referrer TEXT,
+    user_agent TEXT,
+    ip_address INET,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- 파티셔닝을 위한 인덱스
+    CONSTRAINT valid_event_type CHECK (event_type != '')
+) PARTITION BY RANGE (created_at);
+```
+
+#### audit_logs (감사 로그)
+```sql
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    table_name VARCHAR(100) NOT NULL,
+    record_id UUID NOT NULL,
+    action audit_action_enum NOT NULL,
+    old_values JSONB,
+    new_values JSONB,
+    changed_by UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+    changed_at TIMESTAMPTZ DEFAULT NOW(),
+    ip_address INET,
+    user_agent TEXT,
+    
+    -- 파티셔닝을 위한 인덱스
+    CONSTRAINT valid_table_name CHECK (table_name != '')
+) PARTITION BY RANGE (changed_at);
+
+CREATE TYPE audit_action_enum AS ENUM ('INSERT', 'UPDATE', 'DELETE');
+```
+
+## 4. 인덱스 및 성능 최적화
+
+### 4.1 주요 인덱스
+```sql
+-- 사용자 관련 인덱스
+CREATE INDEX idx_user_profiles_email ON user_profiles(email);
+CREATE INDEX idx_user_profiles_username ON user_profiles(username);
+CREATE INDEX idx_user_profiles_role ON user_profiles(role);
+CREATE INDEX idx_user_profiles_active ON user_profiles(is_active) WHERE is_active = true;
+
+-- 예약 관련 인덱스
+CREATE INDEX idx_reservations_user_id ON reservations(user_id);
+CREATE INDEX idx_reservations_room_id ON reservations(room_id);
+CREATE INDEX idx_reservations_dates ON reservations(check_in_date, check_out_date);
+CREATE INDEX idx_reservations_status ON reservations(status);
+CREATE INDEX idx_reservations_created_at ON reservations(created_at);
+CREATE INDEX idx_reservations_number ON reservations(reservation_number);
+
+-- 객실 관련 인덱스
+CREATE INDEX idx_rooms_partner_id ON rooms(partner_id);
+CREATE INDEX idx_rooms_type ON rooms(room_type);
+CREATE INDEX idx_rooms_available ON rooms(is_available) WHERE is_available = true;
+CREATE INDEX idx_rooms_price ON rooms(base_price);
+
+-- 프로그램 관련 인덱스
+CREATE INDEX idx_programs_category_id ON programs(category_id);
+CREATE INDEX idx_programs_partner_id ON programs(partner_id);
+CREATE INDEX idx_programs_available ON programs(is_available) WHERE is_available = true;
+CREATE INDEX idx_programs_price ON programs(price);
+
+-- 결제 관련 인덱스
+CREATE INDEX idx_payments_reservation_id ON payments(reservation_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_date ON payments(payment_date);
+CREATE INDEX idx_payments_gateway ON payments(payment_gateway);
+
+-- 알림 관련 인덱스
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX idx_notifications_status ON notifications(status);
+CREATE INDEX idx_notifications_scheduled_at ON notifications(scheduled_at);
+CREATE INDEX idx_notifications_type ON notifications(type);
+```
+
+### 4.2 복합 인덱스
+```sql
+-- 예약 검색 최적화
+CREATE INDEX idx_reservations_user_status ON reservations(user_id, status);
+CREATE INDEX idx_reservations_room_dates ON reservations(room_id, check_in_date, check_out_date);
+
+-- 프로그램 예약 최적화
+CREATE INDEX idx_reservation_programs_reservation_program ON reservation_programs(reservation_id, program_id);
+CREATE INDEX idx_reservation_programs_date_status ON reservation_programs(scheduled_date, status);
+
+-- 분석 최적화
+CREATE INDEX idx_analytics_events_type_date ON analytics_events(event_type, created_at);
+CREATE INDEX idx_analytics_events_user_date ON analytics_events(user_id, created_at);
+```
+
+## 5. Row Level Security (RLS) 정책
+
+### 5.1 사용자 프로필 보안
+```sql
+-- 사용자는 자신의 프로필만 조회/수정 가능
+CREATE POLICY "Users can view own profile" ON user_profiles
+    FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON user_profiles
+    FOR UPDATE USING (auth.uid() = id);
+
+-- 관리자는 모든 프로필 조회 가능
+CREATE POLICY "Admins can view all profiles" ON user_profiles
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM user_profiles
+            WHERE user_profiles.id = auth.uid()
+            AND user_profiles.role IN ('admin', 'super_admin')
+        )
+    );
+```
+
+### 5.2 예약 보안 정책
+```sql
+-- 사용자는 자신의 예약만 조회/수정 가능
+CREATE POLICY "Users can view own reservations" ON reservations
+    FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Users can update own reservations" ON reservations
+    FOR UPDATE USING (user_id = auth.uid());
+
+-- 관리자는 모든 예약 조회 가능
+CREATE POLICY "Admins can view all reservations" ON reservations
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM user_profiles
+            WHERE user_profiles.id = auth.uid()
+            AND user_profiles.role IN ('admin', 'super_admin')
+        )
+    );
+```
+
+### 5.3 결제 보안 정책
+```sql
+-- 사용자는 자신의 결제 정보만 조회 가능
+CREATE POLICY "Users can view own payments" ON payments
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM reservations
+            WHERE reservations.id = payments.reservation_id
+            AND reservations.user_id = auth.uid()
+        )
+    );
+
+-- 관리자는 모든 결제 정보 조회 가능
+CREATE POLICY "Admins can view all payments" ON payments
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM user_profiles
+            WHERE user_profiles.id = auth.uid()
+            AND user_profiles.role IN ('admin', 'super_admin')
+        )
+    );
+```
+
+## 6. 트리거 및 함수
+
+### 6.1 자동 업데이트 트리거
+```sql
+-- updated_at 자동 업데이트 함수
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 모든 테이블에 updated_at 트리거 적용
+CREATE TRIGGER update_user_profiles_updated_at
+    BEFORE UPDATE ON user_profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_reservations_updated_at
+    BEFORE UPDATE ON reservations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+```
+
+### 6.2 예약 번호 생성 함수
+```sql
+CREATE OR REPLACE FUNCTION generate_reservation_number()
+RETURNS TEXT AS $$
+DECLARE
+    new_number TEXT;
+    counter INTEGER;
+BEGIN
+    -- 현재 날짜 기반 프리픽스 생성
+    SELECT 'RES' || TO_CHAR(NOW(), 'YYYYMMDD') || LPAD(
+        COALESCE(MAX(CAST(SUBSTRING(reservation_number FROM 12) AS INTEGER)), 0) + 1,
+        4, '0'
+    )
+    INTO new_number
+    FROM reservations
+    WHERE reservation_number LIKE 'RES' || TO_CHAR(NOW(), 'YYYYMMDD') || '%';
+    
+    RETURN new_number;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 예약 번호 자동 생성 트리거
+CREATE OR REPLACE FUNCTION set_reservation_number()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.reservation_number IS NULL THEN
+        NEW.reservation_number := generate_reservation_number();
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_reservation_number_trigger
+    BEFORE INSERT ON reservations
+    FOR EACH ROW
+    EXECUTE FUNCTION set_reservation_number();
+```
+
+### 6.3 감사 로그 트리거
+```sql
+CREATE OR REPLACE FUNCTION audit_trigger()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_logs (table_name, record_id, action, old_values, changed_by)
+        VALUES (TG_TABLE_NAME, OLD.id, 'DELETE', row_to_json(OLD), auth.uid());
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_logs (table_name, record_id, action, old_values, new_values, changed_by)
+        VALUES (TG_TABLE_NAME, NEW.id, 'UPDATE', row_to_json(OLD), row_to_json(NEW), auth.uid());
+        RETURN NEW;
+    ELSIF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_logs (table_name, record_id, action, new_values, changed_by)
+        VALUES (TG_TABLE_NAME, NEW.id, 'INSERT', row_to_json(NEW), auth.uid());
+        RETURN NEW;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## 7. 데이터 마이그레이션 및 시드 데이터
+
+### 7.1 초기 데이터 설정
+```sql
+-- 기본 프로그램 카테고리
+INSERT INTO program_categories (name, description, icon, color, sort_order) VALUES
+('힐링', '자연과 함께하는 힐링 프로그램', 'heart', '#10B981', 1),
+('액티비티', '다양한 야외 활동 프로그램', 'activity', '#3B82F6', 2),
+('요리', '바비큐 및 요리 체험', 'chef-hat', '#F59E0B', 3),
+('문화', '지역 문화 체험 프로그램', 'palette', '#8B5CF6', 4),
+('레저', '레저 및 스포츠 활동', 'gamepad-2', '#EF4444', 5);
+
+-- 기본 알림 템플릿
+INSERT INTO notification_templates (name, type, channel, subject, body, variables) VALUES
+('예약 확인', 'booking_confirmation', 'email', '예약이 확인되었습니다', 
+ '안녕하세요 {{user_name}}님, 예약번호 {{reservation_number}}가 확인되었습니다.', 
+ '["user_name", "reservation_number"]'),
+('체크인 알림', 'check_in_reminder', 'sms', '', 
+ '{{user_name}}님, 내일 체크인 예정입니다. 예약번호: {{reservation_number}}', 
+ '["user_name", "reservation_number"]');
+```
+
+### 7.2 파티셔닝 설정
+```sql
+-- 월별 파티셔닝 (분석 이벤트)
+CREATE TABLE analytics_events_y2024m01 PARTITION OF analytics_events
+    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+
+CREATE TABLE analytics_events_y2024m02 PARTITION OF analytics_events
+    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
+
+-- 감사 로그 파티셔닝
+CREATE TABLE audit_logs_y2024m01 PARTITION OF audit_logs
+    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
+```
+
+## 8. 성능 모니터링 및 최적화
+
+### 8.1 성능 모니터링 뷰
+```sql
+-- 예약 현황 대시보드 뷰
+CREATE VIEW reservation_dashboard AS
+SELECT 
+    DATE_TRUNC('day', created_at) as date,
+    COUNT(*) as total_reservations,
+    COUNT(*) FILTER (WHERE status = 'confirmed') as confirmed_reservations,
+    SUM(final_amount) as total_revenue,
+    AVG(final_amount) as avg_reservation_value
+FROM reservations
+WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY DATE_TRUNC('day', created_at)
+ORDER BY date DESC;
+
+-- 객실 점유율 뷰
+CREATE VIEW room_occupancy AS
+SELECT 
+    r.id,
+    r.name,
+    COUNT(res.id) as total_bookings,
+    COUNT(res.id) FILTER (WHERE res.status = 'confirmed') as confirmed_bookings,
+    ROUND(
+        COUNT(res.id) FILTER (WHERE res.status = 'confirmed')::DECIMAL / 
+        NULLIF(COUNT(res.id), 0) * 100, 2
+    ) as occupancy_rate
+FROM rooms r
+LEFT JOIN reservations res ON r.id = res.room_id
+    AND res.created_at >= CURRENT_DATE - INTERVAL '30 days'
+GROUP BY r.id, r.name
+ORDER BY occupancy_rate DESC;
+```
+
+### 8.2 백업 및 복구 전략
+```sql
+-- 중요 데이터 백업 함수
+CREATE OR REPLACE FUNCTION backup_critical_data()
+RETURNS VOID AS $$
+BEGIN
+    -- 예약 데이터 백업
+    CREATE TABLE IF NOT EXISTS reservations_backup AS
+    SELECT * FROM reservations WHERE created_at >= CURRENT_DATE - INTERVAL '1 year';
+    
+    -- 결제 데이터 백업
+    CREATE TABLE IF NOT EXISTS payments_backup AS
+    SELECT * FROM payments WHERE created_at >= CURRENT_DATE - INTERVAL '1 year';
+    
+    RAISE NOTICE 'Critical data backup completed';
+END;
+$$ LANGUAGE plpgsql;
+```
+
+## 9. 확장성 고려사항
+
+### 9.1 읽기 복제본 전략
+- **마스터 DB**: 모든 쓰기 작업
+- **읽기 복제본**: 분석 쿼리, 리포트 생성
+- **캐시 레이어**: Redis를 통한 세션 및 자주 조회되는 데이터 캐싱
+
+### 9.2 샤딩 전략
+- **수평 분할**: 사용자 ID 기반 샤딩
+- **수직 분할**: 도메인별 데이터베이스 분리
+- **지역별 분할**: 글로벌 확장 시 지역별 데이터베이스
+
+### 9.3 아카이빙 전략
+- **콜드 스토리지**: 1년 이상 된 데이터 자동 아카이빙
+- **압축**: 분석 데이터 압축 저장
+- **삭제 정책**: GDPR 준수를 위한 자동 삭제 스케줄
+
+이 데이터베이스 스키마는 펜션 예약 시스템의 모든 요구사항을 충족하며, 확장성과 성능을 고려한 전문가 수준의 설계입니다. 
