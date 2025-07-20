@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { checkProfileCompletion } from '@/lib/profile-completion'
 import Link from 'next/link'
 
-export default function AdminAuthCallback() {
+function AdminAuthCallbackContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -163,5 +163,24 @@ export default function AdminAuthCallback() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function AdminAuthCallback() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center space-x-2">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>인증 처리 중...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <AdminAuthCallbackContent />
+    </Suspense>
   )
 } 

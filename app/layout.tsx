@@ -2,6 +2,10 @@ import "@/styles/globals.css"
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/hooks/use-auth"
 
+// 모든 페이지를 동적 렌더링으로 강제
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 const inter = Inter({ subsets: ["latin"] })
 
 export default function RootLayout({

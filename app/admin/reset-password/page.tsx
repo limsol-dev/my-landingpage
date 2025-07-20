@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Shield, Eye, EyeOff, Lock, AlertCircle, CheckCircle } from 'lucide-react'
 
-export default function AdminResetPasswordPage() {
+function AdminResetPasswordContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
@@ -257,5 +257,24 @@ export default function AdminResetPasswordPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function AdminResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center space-x-2">
+              <Shield className="h-4 w-4 animate-spin" />
+              <span>로딩 중...</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <AdminResetPasswordContent />
+    </Suspense>
   )
 } 

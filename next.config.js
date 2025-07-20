@@ -27,6 +27,15 @@ const nextConfig = {
     optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
     disableOptimizedLoading: true
   },
+
+  // 모든 페이지를 동적 렌더링으로 강제 (useSearchParams 오류 해결)
+  output: 'standalone',
+  
+  // 정적 생성 완전 비활성화
+  trailingSlash: false,
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
   
   // Webpack 설정
   webpack: (config, { dev, isServer }) => {
