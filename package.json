@@ -45,6 +45,7 @@
     "@radix-ui/react-toggle-group": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
     "@sendgrid/mail": "^8.1.5",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/supabase-js": "^2.50.0",
     "@types/uuid": "^10.0.0",
     "bcryptjs": "^2.4.3",
